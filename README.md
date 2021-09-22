@@ -2,17 +2,13 @@
 COSC 414 Project with the lads
 
 Objectives (80%):
-  
   1.The playing field starts as a circular disk centered at the origin.
   2.The player views the disk from above.
-  3.Bacteria grow on the circumference of the disk starting at an arbitrary spot on the circumference and growing out uniformly in each direction from that spot at a speed  \
-    determined by the game.
+  3.Bacteria grow on the circumference of the disk starting at an arbitrary spot on the circumference and growing out uniformly in each direction from that spot at a speed determined by the game.
   4.The player needs to eradicate the bacteria by placing the mouse over the bacteria and hitting a button.
   5.The effect of the poison administered is to immediately remove the poisoned bacteria.
   6.The game can randomly generate up to a fixed number (say 10) of different bacteria (each with a different color).
-  7.The bacteria appear as a crust on the circumference of the disk.
-  8.The game gains points through the delays in the user responding and by any specific bacteria reaching a threshold (for example,a 30-degree arc).9.The player wins if all  
-    bacteria are poisoned before any twodifferent bacteria reach the threshold mentioned above.
+  7.The bacteria appear as a crust on the circumference of the disk.8.The game gains points through the delays in the user responding and by any specific bacteria reaching a threshold (for example,a 30-degree arc).9.The player wins if all  bacteria are poisoned before any twodifferent bacteria reach the threshold mentioned above.
     
 Bonus (10% per):
 

@@ -12,10 +12,11 @@ var vertexShaderText = [
 'precision mediump float;',
 
 'attribute vec2 vertPosition;',
+'uniform vec2 motion;',
 
 'void main()',
 '{',
-'	gl_Position = vec4(vertPosition, 0.0, 1.0);',
+'	gl_Position = vec4(vertPosition + motion, 0.0, 1.0);',
 'gl_PointSize = 10.0;',
 '}'
 ].join('\n');
@@ -105,6 +106,8 @@ var Initialize = function() {
 	objectVertices.push(nest2.nestX);
 	objectVertices.push(nest2.nestY);
 	
+
+	objectVertices.push(0,0);
 	
 	var vertexBufferObject = gl.createBuffer();
 	
@@ -133,8 +136,15 @@ var Initialize = function() {
 	
 	/////drawing
 	
+	var motion = new Float32Array(2);
+	motion[0] = 0;
+	motion[1] = 0;
+	var motionUniformLocation = gl.getUniformLocation(program,'motion');
+	gl.uniform2fv(motionUniformLocation,motion);
+
 	
 	var loop = function(){
+		
 		gl.clearColor(227.0/255, 227.0/255, 1.0, 0.9);
 		gl.clear(gl.COLOR_BUFFER_BIT);	
 		
@@ -152,10 +162,26 @@ var Initialize = function() {
 		
 		//bug origin
 		gl.drawArrays(gl.POINTS, 724, 1);
-		//goal
+		requestAnimationFrame(loops);
 	};
+	
+
+
+
+	var loops = function(){
+		motion[0] = motion[0]-0.001;
+		motion[1] = motion[1]-0.001;
+		
+		gl.uniform2fv(motionUniformLocation,motion);
+		
+		gl.drawArrays(gl.POINTS, 726,1);
+		//goal
+		requestAnimationFrame(loop);
+	};
+
 	requestAnimationFrame(loop);
+	requestAnimationFrame(loops);
 	
-	
+
 };
 

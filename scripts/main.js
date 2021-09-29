@@ -7,14 +7,6 @@ class bugNest{
 		}
 		
 }
-class bugGoal{
-	constructor(perimeterPart){
-		this.goalStart =perimeterPart;
-		this.goalEnd=perimeterPart+30;
-	}
-}
-
-
 	//Creates the C equivalent code in an array of strings
 var vertexShaderText = [
 'precision mediump float;',
@@ -77,12 +69,17 @@ var Initialize = function() {
 	gl.attachShader(program, fragmentShader);
 
 	gl.linkProgram(program);
+	//////////////
 	
 	var fragColorLocation = gl.getUniformLocation(program, "fragColor");
 	if(!gl.getProgramParameter(program, gl.LINK_STATUS)){
 		console.error('Error linking program', gl.getProgramInfo(program));
 		return;
 	}
+	
+	
+	
+	
 	var objectVertices = [0,0];
 	for(var i = 0.0; i<=360; i+=1){
 		var j = i * Math.PI / 180;
@@ -108,11 +105,14 @@ var Initialize = function() {
 	objectVertices.push(nest2.nestX);
 	objectVertices.push(nest2.nestY);
 	
+	
 	var vertexBufferObject = gl.createBuffer();
 	
 	gl.bindBuffer(gl.ARRAY_BUFFER, vertexBufferObject);
 	
 	gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(objectVertices), gl.STATIC_DRAW);
+	
+	
 	
 	var positionAttribLocation = gl.getAttribLocation(program, 'vertPosition');
 	gl.vertexAttribPointer(
@@ -125,7 +125,14 @@ var Initialize = function() {
 		);
 	gl.enableVertexAttribArray(positionAttribLocation);
 
+
+
 	gl.useProgram(program);
+	
+	
+	
+	/////drawing
+	
 	
 	var loop = function(){
 		gl.clearColor(227.0/255, 227.0/255, 1.0, 0.9);
@@ -145,10 +152,6 @@ var Initialize = function() {
 		
 		//bug origin
 		gl.drawArrays(gl.POINTS, 724, 1);
-		
-		gl.uniform4f(fragColorLocation, 255.0/255, 255.0/255, 0.0/255, 1.0);
-		
-		gl.drawArrays(gl.POINTS, 726, 1);
 		//goal
 	};
 	requestAnimationFrame(loop);

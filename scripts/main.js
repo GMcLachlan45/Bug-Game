@@ -1,9 +1,15 @@
 // various game objects
 class bugNest{
-	
-		constructor(perimeterPart){
-			this.nestX = 0.88* Math.cos(perimeterPart*Math.PI/180);
-			this.nestY = 0.88* Math.sin(perimeterPart*Math.PI/180);
+		constructor(perimeterLocation){
+			this.nestX = 0.88* Math.cos(perimeterLocation*Math.PI/180);
+			this.nestY = 0.88* Math.sin(perimeterLocation*Math.PI/180);
+		}
+		
+}
+class bugGoal{
+		constructor(perimeterStart=0){
+			this.start = perimeterStart;
+			this.end = 30 + perimeterStart;
 		}
 		
 }
@@ -30,10 +36,11 @@ var fragmentShaderText = [
 '}'
 ].join('\n');
 	
+	var canvas, gl, program;
 var Initialize = function() {
 	//Initializes the webGL stuff
-	var canvas = document.getElementById("glCanvas");
-	var gl = canvas.getContext("webgl");
+	canvas = document.getElementById("glCanvas");
+	gl = canvas.getContext("webgl");
 	if (!gl){
 		console.log("Base webgl not supported. Trying Experimental");
 		gl = canvas.getContext("experimental-webgl");
@@ -64,7 +71,7 @@ var Initialize = function() {
 		console.error('Error compiling vertex shader!', gl.getShaderInfoLog(fragmentShader))
 		return;
 	}
-	var program = gl.createProgram();
+	program = gl.createProgram();
 	gl.attachShader(program, vertexShader);
 	gl.attachShader(program, fragmentShader);
 
@@ -86,6 +93,7 @@ var Initialize = function() {
 		objectVertices.push(0.9* Math.cos(j));
 		objectVertices.push(0.9* Math.sin(j));
 	}
+	
 	objectVertices.push(0,0);
 	for(var i = 0.0; i<=360; i+=1){
 		var j = i * Math.PI / 180;
@@ -96,15 +104,28 @@ var Initialize = function() {
 	var bugOrigin = Math.floor(Math.random()*360);
 	let nest = new bugNest(bugOrigin);
 	
+	console.log("nest coordinates at "+ (objectVertices.length/2)+"\n");
 	objectVertices.push(nest.nestX);
 	objectVertices.push(nest.nestY);
 	
+	console.log("goal coordinates  start at at "+ (objectVertices.length/2)+"\n");
 	//trying to figure out the bug goal
-	let nest2 = new bugNest(bugOrigin+90.0);
+	var bugNestSt =bugOrigin+ 90+ Math.floor(Math.random()*150);
 	
-	objectVertices.push(nest2.nestX);
-	objectVertices.push(nest2.nestY);
+	console.log(bugNestSt+"\n");
+	let goal = new bugGoal(bugNestSt);
 	
+	console.log("goal coordinates  start at at "+ goal.start+" end " +goal.end+"\n");
+	for(var i = goal.start; i<=goal.end; i+=1){
+		var j = i * Math.PI / 180;
+		objectVertices.push(0.88* Math.cos(j));
+		objectVertices.push(0.88* Math.sin(j));
+	}
+	
+	console.log(" and end at "+ (objectVertices.length/2)+"\n");
+	
+	
+	//TODO create bugs to move
 	
 	var vertexBufferObject = gl.createBuffer();
 	
@@ -139,7 +160,7 @@ var Initialize = function() {
 		gl.clear(gl.COLOR_BUFFER_BIT);	
 		
 		//draws the border of the peitry dish
-		gl.uniform4f(fragColorLocation, 160.0/255, 160.0/255, 232.0/255, 1.0); //////TANNER, IT IS THIS FUNCT THAT CHANGES COLORS, THE RGBA VALUES ARE DIVIDED BY 255 TO GET THE VALUE BETWEEN 1 AND 0
+		gl.uniform4f(fragColorLocation, 160.0/255, 160.0/255, 232.0/255, 1.0);
 		
 		gl.drawArrays(gl.TRIANGLE_FAN,0,362);
 		
@@ -148,11 +169,14 @@ var Initialize = function() {
 		gl.drawArrays(gl.TRIANGLE_FAN, 362,362);
 		
 		//draws the bug nest and the goal to protect from
-		gl.uniform4f(fragColorLocation, 255.0/255, 0.0/255, 0.0/255, 1.0);
 		
 		//bug origin
+		gl.uniform4f(fragColorLocation, 255.0/255, 0.0/255, 0.0/255, 1.0);
 		gl.drawArrays(gl.POINTS, 724, 1);
-		//goal
+		
+		//bug goal
+		gl.uniform4f(fragColorLocation, 255.0/255, 255.0/255, 0.0/255, 1.0);
+		gl.drawArrays(gl.POINTS, 725, 31 );
 	};
 	requestAnimationFrame(loop);
 	

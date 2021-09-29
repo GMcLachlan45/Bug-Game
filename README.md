@@ -9,7 +9,8 @@ COSC 414 Project with the lads
   &nbsp;&nbsp;&nbsp;&nbsp;4.The player needs to eradicate the bacteria by placing the mouse over the bacteria and hitting a button.\
   &nbsp;&nbsp;&nbsp;&nbsp;5.The effect of the poison administered is to immediately remove the poisoned bacteria.\
   &nbsp;&nbsp;&nbsp;&nbsp;6.The game can randomly generate up to a fixed number (say 10) of different bacteria (each with a different color).\
-  &nbsp;&nbsp;&nbsp;&nbsp;7.The bacteria appear as a crust on the circumference of the disk.8.The game gains points through the delays in the user responding and by any specific bacteria reaching a threshold (for example,a 30-degree arc).9.The player wins if all  bacteria are poisoned before any twodifferent bacteria reach the threshold mentioned above.
+  &nbsp;&nbsp;&nbsp;&nbsp;7.The bacteria appear as a crust on the circumference of the disk.
+  &nbsp;&nbsp;&nbsp;&nbsp;8.The game gains points through the delays in the user responding and by any specific bacteria reaching a threshold (for example,a 30-degree arc).9.The player wins if all  bacteria are poisoned before any twodifferent bacteria reach the threshold mentioned above.
     
 ### Bonus (10% per): ###
 

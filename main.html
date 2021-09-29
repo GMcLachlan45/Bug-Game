@@ -1,47 +1,25 @@
 <!DOCTYPE html>
 <html lang = "en">		
 <html>
-	<head>
-	<title>Buggu Game</title>
-	<link rel="shortcut icon" href="Bug_Icon.png" type="image/x-icon">
-		<script id = "vertex-shader" type = "x-shader/x-vertex">
-			attribute vec4 vPosition;
-			
-			void main(){
-				gl_PointSize = 5.0;
-				gl_Position = vPosition;
-			}
-		</script>
-		<script id = "fragment-shader" type = "x-shader/x-fragment">
-			precision mediump float;
-			
-			void main() {
-				gl_FragColor = vec4(1.0, 0.0, 0.5, 1.0);
-			}
-		</script>
-		
-		<script type="text/javascript" src="../Common/webgl-utils.js"></script>
-		<script type="text/javascript" src="../Common/initShaders.js"></script>
-		<script type="text/javascript" src="../Common/MV.js"></script>
-		
-		<script type="text/javascript" src="scripts/main.js"></script>
-	</head>
+<head>
+<meta charset="utf-8">
+<title>Buggu Game</title>
+<link rel="shortcut icon" href="Bug_Icon.png" type="image/x-icon">
+</head>
+
+<body onload = "Initialize();">
+	<div class = "header">
+	<p style = "vertical-align: top; text-align: right"> By Gaben, Tanman and Vinu</p>
+	<h1 style = "text-align: center; margin-top: -4px"> Buggu Game </h1>
+	</div>
+	<div>
+		<center > 		
+			<canvas id = "glCanvas">
+					>His browser doesn't support canvas
+			</canvas>
+			<script src = "scripts/main.js"></script>
+		</center>
+	</div>
 	
-	<body>
-		<div class = "header">
-		<p style = "vertical-align: top; text-align: right"> By Gaben, Tanman and Vinu</p>
-		<h1 style = "text-align: center; margin-top: -4px"> Buggu Game </h1>
-		</div>
-		<div onload = "Initialize()">
-			<center> 		
-				<canvas id = "glCanvas" style = "width: 75%;
-					height: 75%;
-					outline: black 3px solid;">
-						>His browser doesn't support canvas
-				</canvas>
-				<script src = "scripts/main.js"></script>
-			</center>
-		</div>
-		
-	</body>
+</body>
 </html>

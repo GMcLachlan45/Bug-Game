@@ -19,7 +19,7 @@ class bug{
 			}
 			this.growthFactor
 		}
-		
+		//grow()
 }
 class bugGoal{
 		constructor(){
@@ -38,12 +38,13 @@ var vertexShaderText = [
 'precision mediump float;',
 
 'attribute vec2 vertPosition;',
-'uniform mat4 scaling;',
+'uniform mat2 scaling;',
 
 'void main()',
 '{',
-'	gl_Position = scaling * vec4(vertPosition, 0.0, 1.0);',
-'gl_PointSize = 10.0;',
+'vertPosition;',
+'	gl_Position =  vec4((scaling *vertPosition), 0.0, 1.0);',
+'	gl_PointSize = 10.0;',
 '}'
 ].join('\n');
 
@@ -57,8 +58,11 @@ var fragmentShaderText = [
 '}'
 ].join('\n');
 	
-	var canvas, gl, program;
+	
 var Initialize = function() {
+	
+	var canvas, gl, program;
+	
 	//Initializes the webGL stuff
 	canvas = document.getElementById("glCanvas");
 	gl = canvas.getContext("webgl");
@@ -72,8 +76,6 @@ var Initialize = function() {
 	canvas.width = window.innerHeight;
 	canvas.height = window.innerHeight;
 	gl.viewport(0,0,canvas.width,canvas.height);
-
-	
 
 	//Compiles the shader objects
 	var vertexShader = gl.createShader(gl.VERTEX_SHADER);
@@ -92,11 +94,16 @@ var Initialize = function() {
 		console.error('Error compiling vertex shader!', gl.getShaderInfoLog(fragmentShader))
 		return;
 	}
+	
+	//creates the program
 	program = gl.createProgram();
 	gl.attachShader(program, vertexShader);
 	gl.attachShader(program, fragmentShader);
-
 	gl.linkProgram(program);
+	gl.useProgram(program);
+	
+	
+	
 	//////////////
 	
 	var fragColorLocation = gl.getUniformLocation(program, "fragColor");
@@ -168,16 +175,14 @@ var Initialize = function() {
 		0*Float32Array.BYTES_PER_ELEMENT
 		);
 	gl.enableVertexAttribArray(positionAttribLocation);
-
-
-
-	gl.useProgram(program);
 	
-	var scaling = new Float32Array([ 
-	1.0, 0.0, 0.0, 0.0,
-	0.0, 1.0, 0.0, 0.0,
-	0.0, 0.0, 1.0, 0.0,
-	0.0, 0.0, 0.0, 1.0,
+	var bugScaling = new Float32Array([ 
+	1.0, 0.0, 
+	0.0, 1.0
+	]);
+	var pietryScaling = new Float32Array([ 
+	1.0, 0.0, 
+	0.0, 1.0
 	]);
 	
 	var scalingUniformLocation = gl.getUniformLocation(program, 'scaling');
@@ -186,10 +191,14 @@ var Initialize = function() {
 	
 	
 	var loop = function(){
+		
+		// clear the scene
 		gl.clearColor(227.0/255, 227.0/255, 1.0, 0.9);
 		gl.clear(gl.COLOR_BUFFER_BIT);	
 		
 		//draws the border of the peitry dish
+		
+		gl.uniformMatrix2fv(scalingUniformLocation, false, pietryScaling);
 		gl.uniform4f(fragColorLocation, 160.0/255, 160.0/255, 232.0/255, 1.0);
 		
 		gl.drawArrays(gl.TRIANGLE_FAN,0,362);
@@ -204,10 +213,9 @@ var Initialize = function() {
 		gl.uniform4f(fragColorLocation, 255.0/255, 0.0/255, 0.0/255, 1.0);
 		gl.drawArrays(gl.TRIANGLE_STRIP, 724, 62 );
 		
-		scaling[0]=scaling[0]+0.001;
-		scaling[5]=scaling[5]+0.001;
-		scaling[10]=scaling[10]+0.001;
-		gl.uniformMatrix4fv(scalingUniformLocation, false, scaling);
+		bugScaling[0]=bugScaling[0]+0.001;
+		bugScaling[3]=bugScaling[3]+0.001;
+		gl.uniformMatrix2fv(scalingUniformLocation, false, bugScaling);
 		
 		//drawing bugs
 		for(var i =0; i<bugList.length; i++){
@@ -223,4 +231,6 @@ var Initialize = function() {
 	
 	
 };
+
+//function draw()
 

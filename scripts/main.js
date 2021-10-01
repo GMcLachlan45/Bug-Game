@@ -1,15 +1,35 @@
 // various game objects
-class bugNest{
-		constructor(perimeterLocation){
-			this.nestX = 0.88* Math.cos(perimeterLocation*Math.PI/180);
-			this.nestY = 0.88* Math.sin(perimeterLocation*Math.PI/180);
+class bug{
+		constructor(goalEnd){
+			this.arcLocation= goalEnd +10+Math.floor(Math.random()*310);
+			this.x = 0.87* Math.cos(this.arcLocation*Math.PI/180);
+			this.y = 0.87* Math.sin(this.arcLocation*Math.PI/180);
+			this.r = Math.random();
+			this.g = Math.random();
+			this.b = Math.random();
+			switch(Math.floor(Math.random()*3)) {
+			  case 0:
+				this.r =1.0;
+				break;
+			  case 1:
+				this.g =1.0;
+				break;
+			  case 2:
+				this.b =1.0;
+			}
+			this.growthFactor
 		}
 		
 }
 class bugGoal{
-		constructor(perimeterStart=0){
-			this.start = perimeterStart;
-			this.end = 30 + perimeterStart;
+		constructor(){
+			this.start = Math.floor(Math.random()*360);
+			this.startX =0.88* Math.cos(this.start*Math.PI/180);
+			this.startY =0.88* Math.sin(this.start*Math.PI/180);
+			this.end = 30 + this.start;
+			
+			this.endX =0.88* Math.cos(this.end*Math.PI/180);
+			this.endY =0.88* Math.sin(this.end*Math.PI/180);
 		}
 		
 }
@@ -18,10 +38,11 @@ var vertexShaderText = [
 'precision mediump float;',
 
 'attribute vec2 vertPosition;',
+'uniform mat4 scaling;',
 
 'void main()',
 '{',
-'	gl_Position = vec4(vertPosition, 0.0, 1.0);',
+'	gl_Position = scaling * vec4(vertPosition, 0.0, 1.0);',
 'gl_PointSize = 10.0;',
 '}'
 ].join('\n');
@@ -84,9 +105,7 @@ var Initialize = function() {
 		return;
 	}
 	
-	
-	
-	
+	//outter circle
 	var objectVertices = [0,0];
 	for(var i = 0.0; i<=360; i+=1){
 		var j = i * Math.PI / 180;
@@ -94,6 +113,7 @@ var Initialize = function() {
 		objectVertices.push(0.9* Math.sin(j));
 	}
 	
+	//inner circle
 	objectVertices.push(0,0);
 	for(var i = 0.0; i<=360; i+=1){
 		var j = i * Math.PI / 180;
@@ -101,31 +121,34 @@ var Initialize = function() {
 		objectVertices.push(0.88* Math.sin(j));
 	}
 	
-	var bugOrigin = Math.floor(Math.random()*360);
-	let nest = new bugNest(bugOrigin);
+	//creates the goal for the bugs
+	let goal = new bugGoal();
 	
-	console.log("nest coordinates at "+ (objectVertices.length/2)+"\n");
-	objectVertices.push(nest.nestX);
-	objectVertices.push(nest.nestY);
-	
-	console.log("goal coordinates  start at at "+ (objectVertices.length/2)+"\n");
-	//trying to figure out the bug goal
-	var bugNestSt =bugOrigin+ 90+ Math.floor(Math.random()*150);
-	
-	console.log(bugNestSt+"\n");
-	let goal = new bugGoal(bugNestSt);
-	
-	console.log("goal coordinates  start at at "+ goal.start+" end " +goal.end+"\n");
-	for(var i = goal.start; i<=goal.end; i+=1){
+	console.log("goal coordinates  start at at "+ goal.start+" "+goal.startX +" end " +goal.end+" " + goal.endY +"\n");
+	for(var i = goal.start; i<=goal.end; i++){
 		var j = i * Math.PI / 180;
 		objectVertices.push(0.88* Math.cos(j));
 		objectVertices.push(0.88* Math.sin(j));
+		objectVertices.push(0.89* Math.cos(j));
+		objectVertices.push(0.89* Math.sin(j));
 	}
 	
 	console.log(" and end at "+ (objectVertices.length/2)+"\n");
 	
 	
-	//TODO create bugs to move
+	//TODO create bugs to expand
+	var bugList = [];
+	for(var i =0; i < 10; i++){
+		bugList.push(new bug(goal.end));
+		console.log(bugList[i].x + " " + bugList[i].y);
+		objectVertices.push(bugList[i].x);
+		objectVertices.push(bugList[i].y);
+		for(var ci = 0.0; ci<=360; ci++){
+		var j = ci * Math.PI / 180;
+			objectVertices.push(0.01* Math.cos(j) + bugList[i].x);
+			objectVertices.push(0.01* Math.sin(j) + bugList[i].y);
+		}
+	}
 	
 	var vertexBufferObject = gl.createBuffer();
 	
@@ -150,7 +173,14 @@ var Initialize = function() {
 
 	gl.useProgram(program);
 	
+	var scaling = new Float32Array([ 
+	1.0, 0.0, 0.0, 0.0,
+	0.0, 1.0, 0.0, 0.0,
+	0.0, 0.0, 1.0, 0.0,
+	0.0, 0.0, 0.0, 1.0,
+	]);
 	
+	var scalingUniformLocation = gl.getUniformLocation(program, 'scaling');
 	
 	/////drawing
 	
@@ -168,15 +198,26 @@ var Initialize = function() {
 		gl.uniform4f(fragColorLocation, 225.0/255, 240.0/255, 255.0/255, 1.0);
 		gl.drawArrays(gl.TRIANGLE_FAN, 362,362);
 		
-		//draws the bug nest and the goal to protect from
-		
-		//bug origin
-		gl.uniform4f(fragColorLocation, 255.0/255, 0.0/255, 0.0/255, 1.0);
-		gl.drawArrays(gl.POINTS, 724, 1);
+		//draws the bug  and the goal to protect from
 		
 		//bug goal
-		gl.uniform4f(fragColorLocation, 255.0/255, 255.0/255, 0.0/255, 1.0);
-		gl.drawArrays(gl.POINTS, 725, 31 );
+		gl.uniform4f(fragColorLocation, 255.0/255, 0.0/255, 0.0/255, 1.0);
+		gl.drawArrays(gl.TRIANGLE_STRIP, 724, 62 );
+		
+		scaling[0]=scaling[0]+0.001;
+		scaling[5]=scaling[5]+0.001;
+		scaling[10]=scaling[10]+0.001;
+		gl.uniformMatrix4fv(scalingUniformLocation, false, scaling);
+		
+		//drawing bugs
+		for(var i =0; i<bugList.length; i++){
+			gl.uniform4f(fragColorLocation, bugList[i].r, bugList[i].g, bugList[i].b, 1.0);
+			gl.drawArrays(gl.TRIANGLE_FAN, 786+(i*362), 362 );
+			gl.uniform4f(fragColorLocation, 0.0, 0.0,0.0, 1.0);
+			gl.drawArrays(gl.LINE_LOOP, 786+(i*362 +1), 361 );
+		}
+		requestAnimationFrame(loop);
+		//translate the points  (EXTRA: making sure that they dont leave the petrie dish
 	};
 	requestAnimationFrame(loop);
 	

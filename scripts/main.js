@@ -7,6 +7,7 @@ class bug{
 			this.r = Math.random();
 			this.g = Math.random();
 			this.b = Math.random();
+			this.a= 1.0;
 			switch(Math.floor(Math.random()*3)) {
 			  case 0:
 				this.r =1.0;
@@ -17,9 +18,13 @@ class bug{
 			  case 2:
 				this.b =1.0;
 			}
-			this.growthFactor
+			this.bugScaling = [1.0, 0.0, 0.0,
+								0.0, 1.0, 0.0,
+								0.0, 0.0, 1.0];
+			this.growthFactor= 1.0 + Math.random()*0.3;
+			this.isDead=false;
+			this.isDying=false;
 		}
-		//grow()
 }
 class bugGoal{
 		constructor(){
@@ -38,12 +43,12 @@ var vertexShaderText = [
 'precision mediump float;',
 
 'attribute vec2 vertPosition;',
-'uniform mat2 scaling;',
+'uniform mat3 scaling;',
 
 'void main()',
 '{',
 'vertPosition;',
-'	gl_Position =  vec4((scaling *vertPosition), 0.0, 1.0);',
+'	gl_Position =  vec4( (scaling * vec3(vertPosition, 1.0) ).xy, 0.0, 1.0);',
 '	gl_PointSize = 10.0;',
 '}'
 ].join('\n');
@@ -59,9 +64,9 @@ var fragmentShaderText = [
 ].join('\n');
 	
 	
+	var canvas, gl, program;
 var Initialize = function() {
 	
-	var canvas, gl, program;
 	
 	//Initializes the webGL stuff
 	canvas = document.getElementById("glCanvas");
@@ -145,7 +150,7 @@ var Initialize = function() {
 	
 	//TODO create bugs to expand
 	var bugList = [];
-	for(var i =0; i < 10; i++){
+	for(var i =0; i < 1; i++){
 		bugList.push(new bug(goal.end));
 		console.log(bugList[i].x + " " + bugList[i].y);
 		objectVertices.push(bugList[i].x);
@@ -177,20 +182,31 @@ var Initialize = function() {
 	gl.enableVertexAttribArray(positionAttribLocation);
 	
 	var bugScaling = new Float32Array([ 
-	1.0, 0.0, 
-	0.0, 1.0
+	10.0, 20.0, 10.0,
+	4.0, 5.0, 6.0,
+	2.0, 3.0, 5.0
 	]);
 	var pietryScaling = new Float32Array([ 
-	1.0, 0.0, 
-	0.0, 1.0
+	3.0, 2.0, 4.0,
+	3.0, 3.0, 9.0,
+	4.0, 4.0, 2.0
 	]);
+	
+	var test = multiply3dMatrix(bugScaling, pietryScaling);
 	
 	var scalingUniformLocation = gl.getUniformLocation(program, 'scaling');
 	
 	/////drawing
-	
+	var identityMatrix = new Float32Array([1.0, 0.0, 0.0,
+										   0.0, 1.0, 0.0,
+										   0.0, 0.0, 1.0])
 	
 	var loop = function(){
+		
+		//resizes the viewport
+		canvas.width = window.innerHeight;
+		canvas.height = window.innerHeight;
+		gl.viewport(0,0,canvas.width,canvas.height);
 		
 		// clear the scene
 		gl.clearColor(227.0/255, 227.0/255, 1.0, 0.9);
@@ -198,14 +214,14 @@ var Initialize = function() {
 		
 		//draws the border of the peitry dish
 		
-		gl.uniformMatrix2fv(scalingUniformLocation, false, pietryScaling);
+		gl.uniformMatrix3fv(scalingUniformLocation, false, identityMatrix);
 		gl.uniform4f(fragColorLocation, 160.0/255, 160.0/255, 232.0/255, 1.0);
 		
 		gl.drawArrays(gl.TRIANGLE_FAN,0,362);
 		
 		//draws the playing field
 		gl.uniform4f(fragColorLocation, 225.0/255, 240.0/255, 255.0/255, 1.0);
-		gl.drawArrays(gl.TRIANGLE_FAN, 362,362);
+		gl.drawArrays(gl.TRIANGLE_FAN, 362, 362);
 		
 		//draws the bug  and the goal to protect from
 		
@@ -213,16 +229,24 @@ var Initialize = function() {
 		gl.uniform4f(fragColorLocation, 255.0/255, 0.0/255, 0.0/255, 1.0);
 		gl.drawArrays(gl.TRIANGLE_STRIP, 724, 62 );
 		
-		bugScaling[0]=bugScaling[0]+0.001;
-		bugScaling[3]=bugScaling[3]+0.001;
-		gl.uniformMatrix2fv(scalingUniformLocation, false, bugScaling);
 		
 		//drawing bugs
 		for(var i =0; i<bugList.length; i++){
-			gl.uniform4f(fragColorLocation, bugList[i].r, bugList[i].g, bugList[i].b, 1.0);
-			gl.drawArrays(gl.TRIANGLE_FAN, 786+(i*362), 362 );
-			gl.uniform4f(fragColorLocation, 0.0, 0.0,0.0, 1.0);
-			gl.drawArrays(gl.LINE_LOOP, 786+(i*362 +1), 361 );
+			if(bugList[i].isDead){
+				continue;
+				}
+			else {
+				gl.uniform4f(fragColorLocation, bugList[i].r, bugList[i].g, bugList[i].b, bugList[i].a);
+
+				gl.uniformMatrix3fv(scalingUniformLocation, false, getCompleteTransform(bugList[i])); /// matrx for growing shite
+				if(bugList[i].a<=0.2)
+					bugList[i].isDead = true;
+				console.log(bugList[i].growthFactor);
+				gl.drawArrays(gl.TRIANGLE_FAN, 786+(i*362), 362 );
+				
+				gl.uniform4f(fragColorLocation, 0.0, 0.0,0.0, bugList[i].a);
+				gl.drawArrays(gl.LINE_LOOP, 786+(i*362 +1), 361 );
+			}
 		}
 		requestAnimationFrame(loop);
 		//translate the points  (EXTRA: making sure that they dont leave the petrie dish
@@ -232,5 +256,71 @@ var Initialize = function() {
 	
 };
 
-//function draw()
+function getCompleteTransform(Bug){
+	
+	var finalMatrix = new Float32Array([1.0, 0.0, 0.0,
+										   0.0, 1.0, 0.0,
+										   0.0, 0.0, 1.0]);
+	var translationMatrix = new Float32Array([1.0, 0.0, 0.0,
+										   0.0, 1.0, 0.0,
+										   Bug.x, Bug.y, 1.0]);
+	finalMatrix = multiply3dMatrix(finalMatrix, translationMatrix);
+						// bring back to outside	
+
+						
+						// grow
+	var scalingMatrix = new Float32Array([Bug.growthFactor, 0.0, 0.0,
+										0.0, Bug.growthFactor, 0.0,
+										0.0, 0.0, 1.0]);
+	finalMatrix = multiply3dMatrix(finalMatrix, scalingMatrix);
+		
+	if(Bug.isDying){
+		Bug.a-=1.0/255.0;
+	}else{
+		if(Bug.growthFactor>10.1)
+			Bug.isDying =true;
+		
+		Bug.growthFactor+=0.1;
+		}	
+	translationMatrix[6] *=-1.0;
+	 
+	translationMatrix[7] *=-1.0;
+	
+	finalMatrix = multiply3dMatrix(finalMatrix, translationMatrix);				
+						//bring to middle ^
+	return finalMatrix;
+};
+
+function multiply3dMatrix(mat2, mat1){
+	var a,b,c,d,e,f,g,h,i,j,k,l,m,n,o,p,q,r;
+	a=mat1[0];
+	b=mat1[1];
+	c=mat1[2];
+	d=mat1[3];
+	e=mat1[4];
+	f=mat1[5];
+	g=mat1[6];
+	h=mat1[7];
+	i=mat1[8];
+	j=mat2[0];
+	k=mat2[1];
+	l=mat2[2];
+	m=mat2[3];
+	n=mat2[4];
+	o=mat2[5];
+	p=mat2[6];
+	q=mat2[7];
+	r=mat2[8];
+	
+	//console.log("|%f %f %f | |%f %f %f |\n|%f %f %f |X|%f %f %f |\n|%f %f %f | |%f %f %f |\n ",  a,b,c, j,k,l, d,e,f, m,n,o, g,h,i, p,q,r);
+	
+	var multMatrix =[(a*j + b*m + c*p), (a*k + b*n + c*q), (a*l + b*o + c*r),
+					 (d*j + e*m + f*p), (d*k + e*n + f*q), (d*l + e*o + f*r),
+					 (g*j + h*m + i*p), (g*k + h*n + i*q), (g*l + h*o + i*r)];
+					 
+	//console.log(" |%f %f %f |\n=|%f %f %f |\n |%f %f %f |\n",  multMatrix[0],multMatrix[1],multMatrix[2],multMatrix[3],multMatrix[4],multMatrix[5],multMatrix[6],multMatrix[7],multMatrix[8]);
+	
+	
+	return new Float32Array(multMatrix);
+};
 

@@ -24,6 +24,7 @@ class bug{
 			this.growthFactor= 1.0 + Math.random()*0.3;
 			this.isDead=false;
 			this.isDying=false;
+			this.isExploding=false;
 		}
 }
 class bugGoal{
@@ -49,7 +50,7 @@ var vertexShaderText = [
 '{',
 'vertPosition;',
 '	gl_Position =  vec4( (scaling * vec3(vertPosition, 1.0) ).xy, 0.0, 1.0);',
-'	gl_PointSize = 10.0;',
+'	gl_PointSize = 5.0;',
 '}'
 ].join('\n');
 
@@ -148,9 +149,10 @@ var Initialize = function() {
 	console.log(" and end at "+ (objectVertices.length/2)+"\n");
 	
 	
+	var bugListStart = objectVertices.length/2;
 	//TODO create bugs to expand
 	var bugList = [];
-	for(var i =0; i < 1; i++){
+	for(var i =0; i < 10; i++){
 		bugList.push(new bug(goal.end));
 		console.log(bugList[i].x + " " + bugList[i].y);
 		objectVertices.push(bugList[i].x);
@@ -161,6 +163,10 @@ var Initialize = function() {
 			objectVertices.push(0.01* Math.sin(j) + bugList[i].y);
 		}
 	}
+	
+	var poisonListStart = objectVertices.length/2;
+	console.log(" and end at "+ (objectVertices.length/2)+"\n");
+	
 	
 	var vertexBufferObject = gl.createBuffer();
 	
@@ -201,8 +207,10 @@ var Initialize = function() {
 										   0.0, 1.0, 0.0,
 										   0.0, 0.0, 1.0])
 	
+	var win = false;
+	var lose = false;
 	var loop = function(){
-		
+		win = true;
 		//resizes the viewport
 		canvas.width = window.innerHeight;
 		canvas.height = window.innerHeight;
@@ -239,17 +247,43 @@ var Initialize = function() {
 				gl.uniform4f(fragColorLocation, bugList[i].r, bugList[i].g, bugList[i].b, bugList[i].a);
 
 				gl.uniformMatrix3fv(scalingUniformLocation, false, getCompleteTransform(bugList[i])); /// matrx for growing shite
-				if(bugList[i].a<=0.2)
+				if(bugList[i].a<=0.5)
 					bugList[i].isDead = true;
-				console.log(bugList[i].growthFactor);
-				gl.drawArrays(gl.TRIANGLE_FAN, 786+(i*362), 362 );
+				if(bugList[i].isExploding)
+					for(var x = bugListStart+1+Math.floor(Math.random()*25)+(i*362); x<bugListStart+((i+1)*362);x+=Math.floor(Math.random()*35))
+						gl.drawArrays(gl.POINTS, x, 1 );
+				else{
+					win = false;
+					gl.drawArrays(gl.TRIANGLE_FAN, bugListStart+(i*362), 362 );
+				}
 				
-				gl.uniform4f(fragColorLocation, 0.0, 0.0,0.0, bugList[i].a);
-				gl.drawArrays(gl.LINE_LOOP, 786+(i*362 +1), 361 );
+					
+			//	gl.uniform4f(fragColorLocation, 0.0, 0.0,0.0, bugList[i].a);
+			//	gl.drawArrays(gl.LINE_LOOP, 786+(i*362 +1), 361 );
 			}
 		}
-		requestAnimationFrame(loop);
-		//translate the points  (EXTRA: making sure that they dont leave the petrie dish
+			/*gl.uniform4f(fragColorLocation, 23.0/255, 227.0/255, 37/255.0, 0.8);
+			for(var i =0; i<bugList.length; i++){
+
+				gl.uniformMatrix3fv(scalingUniformLocation, false, getCompleteTransform(bugList[i])); /// matrx for growing shite
+				gl.drawArrays(gl.TRIANGLE_FAN, poisonListStart+(i*362), 362 );
+				
+			//	gl.uniform4f(fragColorLocation, 0.0, 0.0,0.0, bugList[i].a);
+			//	gl.drawArrays(gl.LINE_LOOP, 786+(i*362 +1), 361 );
+			
+		}*/
+		
+			requestAnimationFrame(loop);
+			/*
+		if(lose){
+			///print something
+		}else if(win){
+			console.log("You win!");
+			//print something
+		}else{
+			
+			requestAnimationFrame(loop);
+		}*/
 	};
 	requestAnimationFrame(loop);
 	
@@ -274,10 +308,15 @@ function getCompleteTransform(Bug){
 										0.0, 0.0, 1.0]);
 	finalMatrix = multiply3dMatrix(finalMatrix, scalingMatrix);
 		
-	if(Bug.isDying){
+	if(Bug.isExploding){
 		Bug.a-=1.0/255.0;
-	}else{
-		if(Bug.growthFactor>10.1)
+		Bug.growthFactor+=0.5;
+	}else if(Bug.isDying){
+		Bug.growthFactor/=1.1;
+		if(Bug.growthFactor<1.0)
+			Bug.isExploding=true;
+	} else{
+		if(Bug.growthFactor>50.0)
 			Bug.isDying =true;
 		
 		Bug.growthFactor+=0.1;

@@ -1,9 +1,9 @@
 // various game objects
 class bug{
-		constructor(goalEnd){
-			this.arcLocation= goalEnd +10+Math.floor(Math.random()*310);
-			this.x = 0.87* Math.cos(this.arcLocation*Math.PI/180);
-			this.y = 0.87* Math.sin(this.arcLocation*Math.PI/180);
+		constructor(goalEnd, x, y){
+			var arcLocation= goalEnd +10+Math.floor(Math.random()*310);
+			this.x = 0.87* Math.cos(arcLocation*Math.PI/180);
+			this.y = 0.87* Math.sin(arcLocation*Math.PI/180);
 			this.r = Math.random();
 			this.g = Math.random();
 			this.b = Math.random();
@@ -22,9 +22,11 @@ class bug{
 								0.0, 1.0, 0.0,
 								0.0, 0.0, 1.0];
 			this.growthFactor= 1.0 + Math.random()*0.3;
+			
 			this.isDead=false;
 			this.isDying=false;
 			this.isExploding=false;
+			
 		}
 }
 class bugGoal{
@@ -165,6 +167,7 @@ var Initialize = function() {
 	}
 	
 	var poisonListStart = objectVertices.length/2;
+	var endOfBufferOffset = objectVertices.length/2;
 	console.log(" and end at "+ (objectVertices.length/2)+"\n");
 	
 	
@@ -186,19 +189,6 @@ var Initialize = function() {
 		0*Float32Array.BYTES_PER_ELEMENT
 		);
 	gl.enableVertexAttribArray(positionAttribLocation);
-	
-	var bugScaling = new Float32Array([ 
-	10.0, 20.0, 10.0,
-	4.0, 5.0, 6.0,
-	2.0, 3.0, 5.0
-	]);
-	var pietryScaling = new Float32Array([ 
-	3.0, 2.0, 4.0,
-	3.0, 3.0, 9.0,
-	4.0, 4.0, 2.0
-	]);
-	
-	var test = multiply3dMatrix(bugScaling, pietryScaling);
 	
 	var scalingUniformLocation = gl.getUniformLocation(program, 'scaling');
 	
@@ -259,31 +249,29 @@ var Initialize = function() {
 				
 					
 			//	gl.uniform4f(fragColorLocation, 0.0, 0.0,0.0, bugList[i].a);
-			//	gl.drawArrays(gl.LINE_LOOP, 786+(i*362 +1), 361 );
+			//	gl.drawArrays(gl.LINE_LOOP, 786+(i*362 +1), 361 );						//todo delete
 			}
 		}
-			/*gl.uniform4f(fragColorLocation, 23.0/255, 227.0/255, 37/255.0, 0.8);
+			gl.uniform4f(fragColorLocation, 23.0/255, 227.0/255, 37/255.0, 0.8);
 			for(var i =0; i<bugList.length; i++){
 
 				gl.uniformMatrix3fv(scalingUniformLocation, false, getCompleteTransform(bugList[i])); /// matrx for growing shite
 				gl.drawArrays(gl.TRIANGLE_FAN, poisonListStart+(i*362), 362 );
 				
 			//	gl.uniform4f(fragColorLocation, 0.0, 0.0,0.0, bugList[i].a);
-			//	gl.drawArrays(gl.LINE_LOOP, 786+(i*362 +1), 361 );
+			//	gl.drawArrays(gl.LINE_LOOP, 786+(i*362 +1), 361 );						//todo delete
 			
-		}*/
+		}
 		
-			requestAnimationFrame(loop);
-			/*
+			
 		if(lose){
 			///print something
 		}else if(win){
 			console.log("You win!");
 			//print something
 		}else{
-			
 			requestAnimationFrame(loop);
-		}*/
+		}
 	};
 	requestAnimationFrame(loop);
 	

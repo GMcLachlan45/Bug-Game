@@ -1,32 +1,49 @@
 // various game objects
 class bug{
-		constructor(goalEnd, x, y){
-			var arcLocation= goalEnd +10+Math.floor(Math.random()*310);
-			this.x = 0.87* Math.cos(arcLocation*Math.PI/180);
-			this.y = 0.87* Math.sin(arcLocation*Math.PI/180);
-			this.r = Math.random();
-			this.g = Math.random();
-			this.b = Math.random();
-			this.a= 1.0;
-			switch(Math.floor(Math.random()*3)) {
-			  case 0:
-				this.r =1.0;
-				break;
-			  case 1:
-				this.g =1.0;
-				break;
-			  case 2:
-				this.b =1.0;
+		constructor(goalEnd, x, y, isBug){
+			if(isBug){
+				var arcLocation= goalEnd +10+Math.floor(Math.random()*310);
+				this.x = 0.87* Math.cos(arcLocation*Math.PI/180);
+				this.y = 0.87* Math.sin(arcLocation*Math.PI/180);
+				this.r = Math.random();
+				this.g = Math.random();
+				this.b = Math.random();
+				this.a= 1.0;
+				switch(Math.floor(Math.random()*3)) {
+				  case 0:
+					this.r =1.0;
+					break;
+				  case 1:
+					this.g =1.0;
+					break;
+				  case 2:
+					this.b =1.0;
+				}
+				this.bugScaling = [1.0, 0.0, 0.0,
+									0.0, 1.0, 0.0,
+									0.0, 0.0, 1.0];
+				this.growthFactor= 1.0 + Math.random()*0.3;
+				
+				this.isDead=false;
+				this.isDying=false;
+				this.isExploding=false;
+			}else{
+				this.x = x;
+				this.y = y;
+				this.r = 0.0;//55.0/255.0 * Math.random();
+				this.g = 0.0//Math.random();
+				this.b = 0.0//70.0/255.0*Math.random();
+				this.a= 1.0;
+				
+				this.bugScaling = [1.0, 0.0, 0.0,
+									0.0, 1.0, 0.0,
+									0.0, 0.0, 1.0];
+				this.growthFactor= 1.0;
+				
+				this.isDead=false;
+				this.isDying=false;
+				this.isExploding=false;
 			}
-			this.bugScaling = [1.0, 0.0, 0.0,
-								0.0, 1.0, 0.0,
-								0.0, 0.0, 1.0];
-			this.growthFactor= 1.0 + Math.random()*0.3;
-			
-			this.isDead=false;
-			this.isDying=false;
-			this.isExploding=false;
-			
 		}
 }
 class bugGoal{
@@ -155,12 +172,14 @@ var Initialize = function() {
 	//TODO create bugs to expand
 	var bugList = [];
 	for(var i =0; i < 10; i++){
-		bugList.push(new bug(goal.end));
+		bugList.push(new bug(
+		goal.end, 0, 0, true
+		));
 		console.log(bugList[i].x + " " + bugList[i].y);
 		objectVertices.push(bugList[i].x);
 		objectVertices.push(bugList[i].y);
 		for(var ci = 0.0; ci<=360; ci++){
-		var j = ci * Math.PI / 180;
+			var j = ci * Math.PI / 180;
 			objectVertices.push(0.01* Math.cos(j) + bugList[i].x);
 			objectVertices.push(0.01* Math.sin(j) + bugList[i].y);
 		}
@@ -169,6 +188,22 @@ var Initialize = function() {
 	var poisonListStart = objectVertices.length/2;
 	var endOfBufferOffset = objectVertices.length/2;
 	console.log(" and end at "+ (objectVertices.length/2)+"\n");
+	
+	
+	var poisonList = [];
+	for(var i =0; i < 10; i++){
+		poisonList.push(new bug(
+		goal.end, Math.random()*2.0-1.0, Math.random()*2.0-1.0, false
+		));
+		console.log(poisonList[i].x + " " + poisonList[i].y);
+		objectVertices.push(poisonList[i].x);
+		objectVertices.push(poisonList[i].y);
+		for(var ci = 0.0; ci<=360; ci++){
+			var j = ci * Math.PI / 180;
+			objectVertices.push(0.01* Math.cos(j) + poisonList[i].x);
+			objectVertices.push(0.01* Math.sin(j) + poisonList[i].y);
+		}
+	}
 	
 	
 	var vertexBufferObject = gl.createBuffer();
@@ -252,10 +287,12 @@ var Initialize = function() {
 			//	gl.drawArrays(gl.LINE_LOOP, 786+(i*362 +1), 361 );						//todo delete
 			}
 		}
-			gl.uniform4f(fragColorLocation, 23.0/255, 227.0/255, 37/255.0, 0.8);
-			for(var i =0; i<bugList.length; i++){
-
-				gl.uniformMatrix3fv(scalingUniformLocation, false, getCompleteTransform(bugList[i])); /// matrx for growing shite
+		
+		
+		
+			for(var i =0; i<poisonList.length; i++){
+				gl.uniform4f(fragColorLocation, poisonList[i].r, poisonList[i].g, poisonList[i].b, poisonList[i].a);
+				gl.uniformMatrix3fv(scalingUniformLocation, false, getCompleteTransform(poisonList[i])); /// matrx for growing shite
 				gl.drawArrays(gl.TRIANGLE_FAN, poisonListStart+(i*362), 362 );
 				
 			//	gl.uniform4f(fragColorLocation, 0.0, 0.0,0.0, bugList[i].a);
@@ -352,6 +389,7 @@ function multiply3dMatrix(mat2, mat1){
 	
 	return new Float32Array(multMatrix);
 };
+
 function getMousePosition(canvas, event) {
 	let rect = canvas.getBoundingClientRect();
 	let x = ((event.clientX - rect.left)/canvas.width)-0.5;

@@ -1,4 +1,5 @@
 // various game objects
+
 class bug{
 		constructor(goalEnd, x, y){
 			var arcLocation= goalEnd +10+Math.floor(Math.random()*310);
@@ -67,10 +68,11 @@ var fragmentShaderText = [
 ].join('\n');
 	
 	
+
 	var canvas, gl, program;
-var Initialize = function() {
-	
-	
+var Initialize = function(){
+	var isPlaying = false;
+
 	//Initializes the webGL stuff
 	canvas = document.getElementById("glCanvas");
 	gl = canvas.getContext("webgl");
@@ -110,10 +112,13 @@ var Initialize = function() {
 	gl.linkProgram(program);
 	gl.useProgram(program);
 	
-	
-	
+
+	console.log("You got to the button command");
 	//////////////
 	
+
+	
+
 	var fragColorLocation = gl.getUniformLocation(program, "fragColor");
 	if(!gl.getProgramParameter(program, gl.LINK_STATUS)){
 		console.error('Error linking program', gl.getProgramInfo(program));
@@ -277,6 +282,8 @@ var Initialize = function() {
 	
 	
 };
+
+
 
 function getCompleteTransform(Bug){
 	

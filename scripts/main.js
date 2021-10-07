@@ -45,7 +45,7 @@ var vertexShaderText = [
 
 'attribute vec2 vertPosition;',
 'uniform mat3 scaling;',
-
+'uniform vec2 motion;',
 'void main()',
 '{',
 'vertPosition;',
@@ -321,6 +321,8 @@ function getCompleteTransform(Bug){
 		
 		Bug.growthFactor+=0.1;
 		}	
+
+		
 	translationMatrix[6] *=-1.0;
 	 
 	translationMatrix[7] *=-1.0;
@@ -362,4 +364,18 @@ function multiply3dMatrix(mat2, mat1){
 	
 	return new Float32Array(multMatrix);
 };
+function getMousePosition(canvas, event) {
+	let rect = canvas.getBoundingClientRect();
+	let x = ((event.clientX - rect.left)/canvas.width)-0.5;
+	let y = (((event.clientY - rect.top)/canvas.height)-0.5)*-1;
+	console.log("Coordinate x: " + x, 
+				"Coordinate y: " + y);
+}
+
+let canvasElem = document.querySelector("canvas");
+  
+canvasElem.addEventListener("mousedown", function(e)
+{
+	getMousePosition(canvasElem, e);
+});
 

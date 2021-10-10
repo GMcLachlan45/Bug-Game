@@ -1,6 +1,17 @@
 // various game objects
+
+	var canvas, gl, program;
+	
+	var endOfBufferOffset; var vertexBufferObject; 
+	var poisonList = [];
+	
 class bug{
 		constructor(goalEnd, x, y, isBug){
+			this.isDead=false;
+			this.isDying=false;
+			this.isExploding=false;
+			this.radius = 0.01;
+			this.isBug = isBug;
 			if(isBug){
 				var arcLocation= goalEnd +10+Math.floor(Math.random()*310);
 				this.x = 0.87* Math.cos(arcLocation*Math.PI/180);
@@ -23,28 +34,26 @@ class bug{
 									0.0, 1.0, 0.0,
 									0.0, 0.0, 1.0];
 				this.growthFactor= 1.0 + Math.random()*0.3;
-				
-				this.isDead=false;
-				this.isDying=false;
-				this.isExploding=false;
 			}else{
+				console.log("I am born");
 				this.x = x;
 				this.y = y;
-				this.r = 0.0;//55.0/255.0 * Math.random();
-				this.g = 0.0//Math.random();
-				this.b = 0.0//70.0/255.0*Math.random();
+				this.r = 55.0/255.0 * Math.random();
+				this.g = Math.random();
+				this.b = 70.0/255.0*Math.random();
 				this.a= 1.0;
 				
 				this.bugScaling = [1.0, 0.0, 0.0,
 									0.0, 1.0, 0.0,
 									0.0, 0.0, 1.0];
 				this.growthFactor= 1.0;
-				
-				this.isDead=false;
-				this.isDying=false;
-				this.isExploding=false;
 			}
 		}
+	checkPoisoned(poisonedBug){
+		if(Math.sqrt(Math.pow(this.x-poisonedBug.x, 2) + Math.pow(this.y-poisonedBug.y, 2)) < this.radius*this.growthFactor+poisonedBug.radius*poisonedBug.growthFactor){
+			poisonedBug.isDying = true;
+		}
+	}
 }
 class bugGoal{
 		constructor(){
@@ -58,6 +67,10 @@ class bugGoal{
 		}
 		
 }
+
+
+	
+
 	//Creates the C equivalent code in an array of strings
 var vertexShaderText = [
 'precision mediump float;',
@@ -84,7 +97,8 @@ var fragmentShaderText = [
 ].join('\n');
 	
 	
-	var canvas, gl, program;
+	
+	
 var Initialize = function() {
 	
 	
@@ -137,22 +151,28 @@ var Initialize = function() {
 		return;
 	}
 	
-	//outter circle
-	var objectVertices = [0,0];
-	for(var i = 0.0; i<=360; i+=1){
+	//Outside the dish
+	var objectVertices = [];
+	
+	for(var i = 0; i<=360; i++){
 		var j = i * Math.PI / 180;
+		objectVertices.push(0.9* Math.cos(j));
+		objectVertices.push(0.9* Math.sin(j));
+		objectVertices.push(2.0* Math.cos(j));
+		objectVertices.push(2.0* Math.sin(j));
+	}
+	 var startOfInnerCircle = objectVertices.length/2;
+	
+	//dish Border
+	for(var i = 0; i<=360; i++){
+		var j = i * Math.PI / 180;
+		objectVertices.push(0.88* Math.cos(j));
+		objectVertices.push(0.88* Math.sin(j));
 		objectVertices.push(0.9* Math.cos(j));
 		objectVertices.push(0.9* Math.sin(j));
 	}
 	
-	//inner circle
-	objectVertices.push(0,0);
-	for(var i = 0.0; i<=360; i+=1){
-		var j = i * Math.PI / 180;
-		objectVertices.push(0.88* Math.cos(j));
-		objectVertices.push(0.88* Math.sin(j));
-	}
-	
+	var startOfGoal = objectVertices.length/2;
 	//creates the goal for the bugs
 	let goal = new bugGoal();
 	
@@ -173,8 +193,7 @@ var Initialize = function() {
 	var bugList = [];
 	for(var i =0; i < 10; i++){
 		bugList.push(new bug(
-		goal.end, 0, 0, true
-		));
+		goal.end, 0, 0, true));
 		console.log(bugList[i].x + " " + bugList[i].y);
 		objectVertices.push(bugList[i].x);
 		objectVertices.push(bugList[i].y);
@@ -186,27 +205,21 @@ var Initialize = function() {
 	}
 	
 	var poisonListStart = objectVertices.length/2;
-	var endOfBufferOffset = objectVertices.length/2;
+	endOfBufferOffset = objectVertices.length/2;
 	console.log(" and end at "+ (objectVertices.length/2)+"\n");
 	
 	
-	var poisonList = [];
-	for(var i =0; i < 10; i++){
-		poisonList.push(new bug(
-		goal.end, Math.random()*2.0-1.0, Math.random()*2.0-1.0, false
-		));
-		console.log(poisonList[i].x + " " + poisonList[i].y);
-		objectVertices.push(poisonList[i].x);
-		objectVertices.push(poisonList[i].y);
-		for(var ci = 0.0; ci<=360; ci++){
+	
+	for(var i =0; i < 500; i++){
+		objectVertices.push(0,0);
+		for(var ci = 0.0; ci<=360; ci+=1){
 			var j = ci * Math.PI / 180;
-			objectVertices.push(0.01* Math.cos(j) + poisonList[i].x);
-			objectVertices.push(0.01* Math.sin(j) + poisonList[i].y);
+			objectVertices.push(0.01* Math.cos(j));
+			objectVertices.push(0.01* Math.sin(j));
 		}
 	}
 	
-	
-	var vertexBufferObject = gl.createBuffer();
+	vertexBufferObject = gl.createBuffer();
 	
 	gl.bindBuffer(gl.ARRAY_BUFFER, vertexBufferObject);
 	
@@ -242,49 +255,35 @@ var Initialize = function() {
 		gl.viewport(0,0,canvas.width,canvas.height);
 		
 		// clear the scene
-		gl.clearColor(227.0/255, 227.0/255, 1.0, 0.9);
+		gl.clearColor(225.0/255, 240.0/255, 255.0/255, 1.0);
 		gl.clear(gl.COLOR_BUFFER_BIT);	
-		
-		//draws the border of the peitry dish
-		
-		gl.uniformMatrix3fv(scalingUniformLocation, false, identityMatrix);
-		gl.uniform4f(fragColorLocation, 160.0/255, 160.0/255, 232.0/255, 1.0);
-		
-		gl.drawArrays(gl.TRIANGLE_FAN,0,362);
-		
-		//draws the playing field
-		gl.uniform4f(fragColorLocation, 225.0/255, 240.0/255, 255.0/255, 1.0);
-		gl.drawArrays(gl.TRIANGLE_FAN, 362, 362);
-		
-		//draws the bug  and the goal to protect from
-		
-		//bug goal
-		gl.uniform4f(fragColorLocation, 255.0/255, 0.0/255, 0.0/255, 1.0);
-		gl.drawArrays(gl.TRIANGLE_STRIP, 724, 62 );
-		
 		
 		//drawing bugs
 		for(var i =0; i<bugList.length; i++){
-			if(bugList[i].isDead){
+			if(bugList[i].isDead)
 				continue;
+			
+			gl.uniform4f(fragColorLocation, bugList[i].r, bugList[i].g, bugList[i].b, bugList[i].a);
+			gl.uniformMatrix3fv(scalingUniformLocation, false, getCompleteTransform(bugList[i])); /// matrx for growing shite
+			if(bugList[i].a<=0.5)
+				bugList[i].isDead = true;
+			if(bugList[i].isExploding){
+				for(var x = bugListStart+1+Math.floor(Math.random()*25)+(i*362); x<bugListStart+((i+1)*362);x+=Math.floor(Math.random()*35))
+					gl.drawArrays(gl.POINTS, x, 1 );
+				bugList[i].a-=1.0/255.0;
+				bugList[i].growthFactor+=0.5;
+			}else{
+				win = false;
+				gl.drawArrays(gl.TRIANGLE_FAN, bugListStart+(i*362), 362 );
+				gl.uniform4f(fragColorLocation, 0.0,0.0,0.0,1.0);
+				gl.drawArrays(gl.LINE_LOOP, bugListStart+1+(i*362), 361 );
+				if(Bug.isDying){
+					Bug.growthFactor/=1.1;
+					if(Bug.growthFactor<1.0)
+						Bug.isExploding=true;
+				}else{
+					Bug.growthFactor+=0.01;
 				}
-			else {
-				gl.uniform4f(fragColorLocation, bugList[i].r, bugList[i].g, bugList[i].b, bugList[i].a);
-
-				gl.uniformMatrix3fv(scalingUniformLocation, false, getCompleteTransform(bugList[i])); /// matrx for growing shite
-				if(bugList[i].a<=0.5)
-					bugList[i].isDead = true;
-				if(bugList[i].isExploding)
-					for(var x = bugListStart+1+Math.floor(Math.random()*25)+(i*362); x<bugListStart+((i+1)*362);x+=Math.floor(Math.random()*35))
-						gl.drawArrays(gl.POINTS, x, 1 );
-				else{
-					win = false;
-					gl.drawArrays(gl.TRIANGLE_FAN, bugListStart+(i*362), 362 );
-				}
-				
-					
-			//	gl.uniform4f(fragColorLocation, 0.0, 0.0,0.0, bugList[i].a);
-			//	gl.drawArrays(gl.LINE_LOOP, 786+(i*362 +1), 361 );						//todo delete
 			}
 		}
 		
@@ -294,13 +293,40 @@ var Initialize = function() {
 				gl.uniform4f(fragColorLocation, poisonList[i].r, poisonList[i].g, poisonList[i].b, poisonList[i].a);
 				gl.uniformMatrix3fv(scalingUniformLocation, false, getCompleteTransform(poisonList[i])); /// matrx for growing shite
 				gl.drawArrays(gl.TRIANGLE_FAN, poisonListStart+(i*362), 362 );
-				
-			//	gl.uniform4f(fragColorLocation, 0.0, 0.0,0.0, bugList[i].a);
-			//	gl.drawArrays(gl.LINE_LOOP, 786+(i*362 +1), 361 );						//todo delete
+				for(var j = 0; j <bugList.length; j++){
+					poisonList[i].checkPoisoned(bugList[j]);
+				}					
 			
 		}
 		
-			
+		
+		
+		
+		
+		////////////////////////////////////////////
+		/////////START OF FIELD DRAWING/////////////
+		////////////////////////////////////////////
+
+		//draws the outside of the pietry dish
+		
+		gl.uniformMatrix3fv(scalingUniformLocation, false, identityMatrix);
+		gl.uniform4f(fragColorLocation, 227.0/255, 227.0/255, 1.0, 0.9);				
+		gl.drawArrays(gl.TRIANGLE_STRIP,0,startOfInnerCircle);
+		
+		//draws the pietry dish walls
+		gl.uniform4f(fragColorLocation, 160.0/255, 160.0/255, 232.0/255, 1.0);
+		gl.drawArrays(gl.TRIANGLE_STRIP, startOfInnerCircle, startOfInnerCircle);
+		
+		//draws the goal to protect from bugs
+		
+		//bug goal
+		gl.uniform4f(fragColorLocation, 255.0/255, 0.0/255, 0.0/255, 1.0);
+		gl.drawArrays(gl.TRIANGLE_STRIP, startOfGoal, 62 );
+		////////////////////////////////////////////
+		//////////END OF FIELD DRAWING//////////////
+		////////////////////////////////////////////		
+		
+		//cHECK IF WE LOST THE GAME
 		if(lose){
 			///print something
 		}else if(win){
@@ -340,22 +366,21 @@ function getCompleteTransform(Bug){
 		Bug.growthFactor/=1.1;
 		if(Bug.growthFactor<1.0)
 			Bug.isExploding=true;
-	} else{
-		if(Bug.growthFactor>50.0)
-			Bug.isDying =true;
-		
-		Bug.growthFactor+=0.1;
+	} else{		
+		Bug.growthFactor+=0.01;
 		}	
 
+	if(Bug.isBug){
+		translationMatrix[6] *=-1.0;
+		 
+		translationMatrix[7] *=-1.0;
 		
-	translationMatrix[6] *=-1.0;
-	 
-	translationMatrix[7] *=-1.0;
-	
-	finalMatrix = multiply3dMatrix(finalMatrix, translationMatrix);				
-						//bring to middle ^
+		finalMatrix = multiply3dMatrix(finalMatrix, translationMatrix);				
+							//bring to middle ^
+	}
 	return finalMatrix;
 };
+
 
 function multiply3dMatrix(mat2, mat1){
 	var a,b,c,d,e,f,g,h,i,j,k,l,m,n,o,p,q,r;
@@ -378,24 +403,20 @@ function multiply3dMatrix(mat2, mat1){
 	q=mat2[7];
 	r=mat2[8];
 	
-	//console.log("|%f %f %f | |%f %f %f |\n|%f %f %f |X|%f %f %f |\n|%f %f %f | |%f %f %f |\n ",  a,b,c, j,k,l, d,e,f, m,n,o, g,h,i, p,q,r);
-	
 	var multMatrix =[(a*j + b*m + c*p), (a*k + b*n + c*q), (a*l + b*o + c*r),
 					 (d*j + e*m + f*p), (d*k + e*n + f*q), (d*l + e*o + f*r),
 					 (g*j + h*m + i*p), (g*k + h*n + i*q), (g*l + h*o + i*r)];
-					 
-	//console.log(" |%f %f %f |\n=|%f %f %f |\n |%f %f %f |\n",  multMatrix[0],multMatrix[1],multMatrix[2],multMatrix[3],multMatrix[4],multMatrix[5],multMatrix[6],multMatrix[7],multMatrix[8]);
-	
-	
+		
 	return new Float32Array(multMatrix);
 };
 
+
 function getMousePosition(canvas, event) {
 	let rect = canvas.getBoundingClientRect();
-	let x = ((event.clientX - rect.left)/canvas.width)-0.5;
-	let y = (((event.clientY - rect.top)/canvas.height)-0.5)*-1;
-	console.log("Coordinate x: " + x, 
-				"Coordinate y: " + y);
+	let x = 2.0*((event.clientX - rect.left)/canvas.width)-1.0;
+	let y = (2.0*((event.clientY - rect.top)/canvas.height)-1.0)*-1;
+	if(Math.sqrt(Math.pow(x,2)+Math.pow(y,2))<0.88)
+		poisonList.push(new bug(0,x, y, false));
 }
 
 let canvasElem = document.querySelector("canvas");
@@ -404,4 +425,5 @@ canvasElem.addEventListener("mousedown", function(e)
 {
 	getMousePosition(canvasElem, e);
 });
+
 

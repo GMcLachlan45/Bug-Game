@@ -32,7 +32,7 @@ class bug{
 									0.0, 1.0, 0.0,
 									0.0, 0.0, 1.0];
 				this.growthFactor= 1.0 + Math.random()*0.3;
-				this.growthIncrement= Math.random()*0.12+0.01;/////tanners adding
+				this.growthIncrement= Math.random()*0.012+0.01;/////tanners adding
 			}else{
 				this.x = x;
 				this.y = y;
@@ -52,6 +52,17 @@ class bug{
 		if(Math.sqrt(Math.pow(this.x-poisonedBug.x, 2) + Math.pow(this.y-poisonedBug.y, 2)) < this.radius*this.growthFactor+poisonedBug.radius*poisonedBug.growthFactor){
 			poisonedBug.isDying = true;
 		}
+	}
+	checkContains(smallerBug){
+		if(!smallerBug.isDying && 
+		   Math.sqrt(Math.pow(this.x-smallerBug.x, 2) + Math.pow(this.y-smallerBug.y, 2))+smallerBug.radius*smallerBug.growthFactor 
+		   <=this.radius*this.growthFactor){
+			  
+			this.r = (this.r + smallerBug.r)/2.0;
+			this.g = (this.g + smallerBug.g)/2.0;
+			this.b = (this.b + smallerBug.b)/2.0;
+			smallerBug.isDead=true;
+		   }
 	}
 }
 class bugGoal{
@@ -99,8 +110,6 @@ var fragmentShaderText = [
 	
 	
 var Initialize = function() {
-	
-	
 	//Initializes the webGL stuff
 	canvas = document.getElementById("glCanvas");
 	var gl = canvas.getContext("webgl");
@@ -279,6 +288,10 @@ var Initialize = function() {
 					if(bugList[i].growthFactor<1.0)
 						bugList[i].isExploding=true;
 				}else{
+					for(var j = 0; j <bugList.length; j++){
+						if(i!=j&& !bugList[j].isDead)
+							bugList[i].checkContains(bugList[j]);
+					}	
 					bugList[i].growthFactor+=bugList[i].growthIncrement;
 				}
 			}

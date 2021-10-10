@@ -1,8 +1,6 @@
 // various game objects
 
-	var canvas, gl, program;
-	
-	var endOfBufferOffset; var vertexBufferObject; 
+	var canvas;
 	var poisonList = [];
 	
 class bug{
@@ -34,8 +32,8 @@ class bug{
 									0.0, 1.0, 0.0,
 									0.0, 0.0, 1.0];
 				this.growthFactor= 1.0 + Math.random()*0.3;
+				this.growthIncrement= Math.random()*0.12+0.01;/////tanners adding
 			}else{
-				console.log("I am born");
 				this.x = x;
 				this.y = y;
 				this.r = 55.0/255.0 * Math.random();
@@ -47,6 +45,7 @@ class bug{
 									0.0, 1.0, 0.0,
 									0.0, 0.0, 1.0];
 				this.growthFactor= 1.0;
+				this.growthIncrement = 0.07;
 			}
 		}
 	checkPoisoned(poisonedBug){
@@ -104,7 +103,7 @@ var Initialize = function() {
 	
 	//Initializes the webGL stuff
 	canvas = document.getElementById("glCanvas");
-	gl = canvas.getContext("webgl");
+	var gl = canvas.getContext("webgl");
 	if (!gl){
 		console.log("Base webgl not supported. Trying Experimental");
 		gl = canvas.getContext("experimental-webgl");
@@ -135,7 +134,7 @@ var Initialize = function() {
 	}
 	
 	//creates the program
-	program = gl.createProgram();
+	var program = gl.createProgram();
 	gl.attachShader(program, vertexShader);
 	gl.attachShader(program, fragmentShader);
 	gl.linkProgram(program);
@@ -194,7 +193,6 @@ var Initialize = function() {
 	for(var i =0; i < 10; i++){
 		bugList.push(new bug(
 		goal.end, 0, 0, true));
-		console.log(bugList[i].x + " " + bugList[i].y);
 		objectVertices.push(bugList[i].x);
 		objectVertices.push(bugList[i].y);
 		for(var ci = 0.0; ci<=360; ci++){
@@ -205,7 +203,6 @@ var Initialize = function() {
 	}
 	
 	var poisonListStart = objectVertices.length/2;
-	endOfBufferOffset = objectVertices.length/2;
 	console.log(" and end at "+ (objectVertices.length/2)+"\n");
 	
 	
@@ -219,7 +216,7 @@ var Initialize = function() {
 		}
 	}
 	
-	vertexBufferObject = gl.createBuffer();
+	var vertexBufferObject = gl.createBuffer();
 	
 	gl.bindBuffer(gl.ARRAY_BUFFER, vertexBufferObject);
 	
@@ -265,7 +262,7 @@ var Initialize = function() {
 			
 			gl.uniform4f(fragColorLocation, bugList[i].r, bugList[i].g, bugList[i].b, bugList[i].a);
 			gl.uniformMatrix3fv(scalingUniformLocation, false, getCompleteTransform(bugList[i])); /// matrx for growing shite
-			if(bugList[i].a<=0.5)
+			if(bugList[i].a<=0.4)
 				bugList[i].isDead = true;
 			if(bugList[i].isExploding){
 				for(var x = bugListStart+1+Math.floor(Math.random()*25)+(i*362); x<bugListStart+((i+1)*362);x+=Math.floor(Math.random()*35))
@@ -277,12 +274,12 @@ var Initialize = function() {
 				gl.drawArrays(gl.TRIANGLE_FAN, bugListStart+(i*362), 362 );
 				gl.uniform4f(fragColorLocation, 0.0,0.0,0.0,1.0);
 				gl.drawArrays(gl.LINE_LOOP, bugListStart+1+(i*362), 361 );
-				if(Bug.isDying){
-					Bug.growthFactor/=1.1;
-					if(Bug.growthFactor<1.0)
-						Bug.isExploding=true;
+				if(bugList[i].isDying){
+					bugList[i].growthFactor/=1.1;
+					if(bugList[i].growthFactor<1.0)
+						bugList[i].isExploding=true;
 				}else{
-					Bug.growthFactor+=0.01;
+					bugList[i].growthFactor+=bugList[i].growthIncrement;
 				}
 			}
 		}
@@ -295,7 +292,9 @@ var Initialize = function() {
 				gl.drawArrays(gl.TRIANGLE_FAN, poisonListStart+(i*362), 362 );
 				for(var j = 0; j <bugList.length; j++){
 					poisonList[i].checkPoisoned(bugList[j]);
-				}					
+				}		
+					
+				poisonList[i].growthFactor+=poisonList[i].growthIncrement;
 			
 		}
 		
@@ -358,17 +357,6 @@ function getCompleteTransform(Bug){
 										0.0, Bug.growthFactor, 0.0,
 										0.0, 0.0, 1.0]);
 	finalMatrix = multiply3dMatrix(finalMatrix, scalingMatrix);
-		
-	if(Bug.isExploding){
-		Bug.a-=1.0/255.0;
-		Bug.growthFactor+=0.5;
-	}else if(Bug.isDying){
-		Bug.growthFactor/=1.1;
-		if(Bug.growthFactor<1.0)
-			Bug.isExploding=true;
-	} else{		
-		Bug.growthFactor+=0.01;
-		}	
 
 	if(Bug.isBug){
 		translationMatrix[6] *=-1.0;

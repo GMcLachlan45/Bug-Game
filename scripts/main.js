@@ -3,6 +3,22 @@
 	var canvas;
 	var poisonList = [];
 	var bugGrowthValue;
+	var gameStart = false;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 class bug{
 		constructor(goalEnd, x, y, isBug){
 			this.isDead=false;
@@ -110,7 +126,6 @@ var fragmentShaderText = [
 '	gl_FragColor = fragColor;',
 '}'
 ].join('\n');
-	
 	
 	
 	
@@ -325,7 +340,10 @@ window.onload = function init()
 		
 		
 		
-		
+		var myButton = document.getElementById("DirectionButton");
+		myButton.addEventListener("click", function() { gameStart = !gameStart;
+			console.log(gameStart);
+		});
 		
 		////////////////////////////////////////////
 		/////////START OF FIELD DRAWING/////////////
@@ -351,6 +369,7 @@ window.onload = function init()
 			console.log("Bug incremented!"  + event.srcElement.value);
 
 		};
+	
 
 		////////////////////////////////////////////
 		//////////END OF FIELD DRAWING//////////////

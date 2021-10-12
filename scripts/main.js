@@ -29,7 +29,7 @@ class bug{
 					this.b =1.0;
 				}
 				this.growthFactor= 1.0 + Math.random()*0.3;
-				this.growthIncrement= Math.random()*0.012+0.01;/////tanners adding
+				this.growthIncrement= Math.random()*0.012+0.01 ;/////tanners adding
 			}else{
 				this.x = x;
 				this.y = y;
@@ -114,7 +114,8 @@ var fragmentShaderText = [
 	
 	
 	
-var Initialize = function() {
+window.onload = function init()
+    {
 	//Initializes the webGL stuff
 	canvas = document.getElementById("glCanvas");
 	var gl = canvas.getContext("webgl");
@@ -345,7 +346,12 @@ var Initialize = function() {
 		gl.drawArrays(gl.TRIANGLE_STRIP, border, 10);
 		
 		
-		
+		document.getElementById("slide").onchange = function (){
+			
+			console.log("Bug incremented!" + " " + bug.growthIncrement );
+
+		};
+
 		////////////////////////////////////////////
 		//////////END OF FIELD DRAWING//////////////
 		////////////////////////////////////////////		

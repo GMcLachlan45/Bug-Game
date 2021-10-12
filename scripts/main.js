@@ -2,7 +2,7 @@
 
 	var canvas;
 	var poisonList = [];
-	
+	var bugGrowthValue;
 class bug{
 		constructor(goalEnd, x, y, isBug){
 			this.isDead=false;
@@ -29,7 +29,7 @@ class bug{
 					this.b =1.0;
 				}
 				this.growthFactor= 1.0 + Math.random()*0.3;
-				this.growthIncrement= Math.random()*0.012+0.01 ;/////tanners adding
+				this.growthIncrement= Math.random()*bugGrowthValue;/////tanners adding
 			}else{
 				this.x = x;
 				this.y = y;
@@ -347,8 +347,8 @@ window.onload = function init()
 		
 		
 		document.getElementById("slide").onchange = function (){
-			
-			console.log("Bug incremented!" + " " + bug.growthIncrement );
+			bugGrowthValue = event.srcElement.value;
+			console.log("Bug incremented!"  + event.srcElement.value);
 
 		};
 

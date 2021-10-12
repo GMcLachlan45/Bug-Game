@@ -11,7 +11,7 @@ class bug{
 			this.radius = 0.01;
 			this.isBug = isBug;
 			if(isBug){
-				var arcLocation= goalEnd +10+Math.floor(Math.random()*310);
+				var arcLocation= goalEnd +Math.floor(Math.random()*330);
 				this.x = 0.87* Math.cos(arcLocation*Math.PI/180);
 				this.y = 0.87* Math.sin(arcLocation*Math.PI/180);
 				this.r = Math.random();
@@ -28,9 +28,6 @@ class bug{
 				  case 2:
 					this.b =1.0;
 				}
-				this.bugScaling = [1.0, 0.0, 0.0,
-									0.0, 1.0, 0.0,
-									0.0, 0.0, 1.0];
 				this.growthFactor= 1.0 + Math.random()*0.3;
 				this.growthIncrement= Math.random()*0.012+0.01;/////tanners adding
 			}else{
@@ -40,12 +37,8 @@ class bug{
 				this.g = Math.random();
 				this.b = 70.0/255.0*Math.random();
 				this.a= 1.0;
-				
-				this.bugScaling = [1.0, 0.0, 0.0,
-									0.0, 1.0, 0.0,
-									0.0, 0.0, 1.0];
 				this.growthFactor= 1.0;
-				this.growthIncrement = 0.07;
+				this.growthIncrement = 0.02;
 			}
 		}
 	checkPoisoned(poisonedBug){
@@ -74,8 +67,20 @@ class bugGoal{
 			
 			this.endX =0.88* Math.cos(this.end*Math.PI/180);
 			this.endY =0.88* Math.sin(this.end*Math.PI/180);
+			this.bugCount = 0;
+			this.bug1=-1;
 		}
-		
+	checkLose(bug, bugNum){
+		if( bugNum!= this.bug1 && 
+		(Math.sqrt( Math.pow(this.startX- bug.x, 2) + Math.pow(this.startY -bug.y, 2) )<bug.radius*bug.growthFactor ||
+		Math.sqrt( Math.pow(this.endX- bug.x, 2) + Math.pow(this.endY -bug.y, 2) )<bug.radius*bug.growthFactor )
+			){
+			   this.bugCount++;
+			   console.log("Breach! "+ bugNum);
+			   if(this.bug1==-1)
+				   this.bug1=bugNum;
+		   }
+	}		
 }
 
 
@@ -194,7 +199,12 @@ var Initialize = function() {
 	}
 	
 	console.log(" and end at "+ (objectVertices.length/2)+"\n");
-	
+	var border =objectVertices.length/2;
+	objectVertices.push(1.0, 1.0, 0.99,0.99,
+						-1.0, 1.0, -0.99,0.99,
+						-1.0, -1.0, -0.99,-0.99,
+						1.0, -1.0, 0.99, -0.99,
+						1.0, 1.0, 0.99,0.99);
 	
 	var bugListStart = objectVertices.length/2;
 	//TODO create bugs to expand
@@ -216,7 +226,7 @@ var Initialize = function() {
 	
 	
 	
-	for(var i =0; i < 500; i++){
+	for(var i =0; i < 20; i++){
 		objectVertices.push(0,0);
 		for(var ci = 0.0; ci<=360; ci+=1){
 			var j = ci * Math.PI / 180;
@@ -291,7 +301,8 @@ var Initialize = function() {
 					for(var j = 0; j <bugList.length; j++){
 						if(i!=j&& !bugList[j].isDead)
 							bugList[i].checkContains(bugList[j]);
-					}	
+					}
+					goal.checkLose(bugList[i], i);					
 					bugList[i].growthFactor+=bugList[i].growthIncrement;
 				}
 			}
@@ -329,19 +340,28 @@ var Initialize = function() {
 		gl.uniform4f(fragColorLocation, 160.0/255, 160.0/255, 232.0/255, 1.0);
 		gl.drawArrays(gl.TRIANGLE_STRIP, startOfInnerCircle, startOfInnerCircle);
 		
-		//draws the goal to protect from bugs
+		//draws the canvas border
+		gl.uniform4f(fragColorLocation, 0.0, 0.0, 0.0, 1.0);
+		gl.drawArrays(gl.TRIANGLE_STRIP, border, 10);
 		
-		//bug goal
-		gl.uniform4f(fragColorLocation, 255.0/255, 0.0/255, 0.0/255, 1.0);
-		gl.drawArrays(gl.TRIANGLE_STRIP, startOfGoal, 62 );
+		
+		
 		////////////////////////////////////////////
 		//////////END OF FIELD DRAWING//////////////
 		////////////////////////////////////////////		
 		
 		//cHECK IF WE LOST THE GAME
+		if(goal.bugCount >= 2)
+			lose = true;
 		if(lose){
-			///print something
+			//bug goal
+		gl.uniform4f(fragColorLocation, 255.0/255, 20.0/255, 20.0/255, 1.0);
+		gl.drawArrays(gl.TRIANGLE_STRIP, startOfGoal, 62 );
+			console.log("2 bugs have reached the goal... You lose!");
 		}else if(win){
+			//bug goal
+		gl.uniform4f(fragColorLocation, 255.0/255, 20.0/255, 20.0/255, 1.0);
+		gl.drawArrays(gl.TRIANGLE_STRIP, startOfGoal, 62 );
 			console.log("You win!");
 			//print something
 		}else{
@@ -416,7 +436,7 @@ function getMousePosition(canvas, event) {
 	let rect = canvas.getBoundingClientRect();
 	let x = 2.0*((event.clientX - rect.left)/canvas.width)-1.0;
 	let y = (2.0*((event.clientY - rect.top)/canvas.height)-1.0)*-1;
-	if(Math.sqrt(Math.pow(x,2)+Math.pow(y,2))<0.88)
+	if(poisonList.length < 20 && Math.sqrt(Math.pow(x,2)+Math.pow(y,2))<0.88)
 		poisonList.push(new bug(0,x, y, false));
 }
 

@@ -21,7 +21,7 @@ td {
 <link rel="shortcut icon" href="Bug_Icon.png" type="image/x-icon">
 </head>
 
-<body class = "scripts/.vs/main.js">
+<body>
 	<div class = "header">
 	<p style = "vertical-align: top; text-align: right"> By Gabriel, Tanner, and Vinu</p>
 	<h1 style = "text-align: center; margin-top: -4px"> Buggu Game </h1>
@@ -45,20 +45,22 @@ td {
 				<canvas id = "glCanvas">
 						>His browser doesn't support canvas
 				</canvas>
-				<script src = "scripts/main.js"></script>
 			</center>
 		</div>
 		</td>
 		
 		<td> 
 		<h4 style = "text-align: center;">Options</h4>
+		<center>  <button id="playButton">Play</button> </center>
 		<h4 style = "text-align: center;">Easy Normal Hard</h4>
 		
-		<input id="slide" type = "range" min="1" max = "100" step = 10 value = "50" />
+		<input id="difficultySlider" type = "range" min="1" max = "100" step = 10 value = "50" />
 	
 		</td>
 		</tr>
 	</table>
 	
 </body>
+
+	<script src = "scripts/main.js"></script>
 </html>

@@ -2,7 +2,7 @@
 
 	var canvas;
 	var poisonList = [];
-	
+	var gameOn = false;
 class bug{
 		constructor(goalEnd, x, y, isBug){
 			this.isDead=false;
@@ -113,9 +113,9 @@ var fragmentShaderText = [
 	
 	
 	
+
+window.onload = function init(){
 	
-window.onload = function init()
-    {
 	//Initializes the webGL stuff
 	canvas = document.getElementById("glCanvas");
 	var gl = canvas.getContext("webgl");
@@ -345,13 +345,6 @@ window.onload = function init()
 		gl.uniform4f(fragColorLocation, 0.0, 0.0, 0.0, 1.0);
 		gl.drawArrays(gl.TRIANGLE_STRIP, border, 10);
 		
-		
-		document.getElementById("slide").onchange = function (){
-			
-			console.log("Bug incremented!" + " " + bug.growthIncrement );
-
-		};
-
 		////////////////////////////////////////////
 		//////////END OF FIELD DRAWING//////////////
 		////////////////////////////////////////////		
@@ -376,7 +369,10 @@ window.onload = function init()
 	};
 	requestAnimationFrame(loop);
 	
-	
+	gameOn =false;
+//}
+
+
 };
 
 function getCompleteTransform(Bug){
@@ -437,7 +433,6 @@ function multiply3dMatrix(mat2, mat1){
 	return new Float32Array(multMatrix);
 };
 
-
 function getMousePosition(canvas, event) {
 	let rect = canvas.getBoundingClientRect();
 	let x = 2.0*((event.clientX - rect.left)/canvas.width)-1.0;
@@ -446,11 +441,21 @@ function getMousePosition(canvas, event) {
 		poisonList.push(new bug(0,x, y, false));
 }
 
-let canvasElem = document.querySelector("canvas");
-  
-canvasElem.addEventListener("mousedown", function(e)
-{
+//sets up the option menu
+
+let canvasElem = document.getElementById("glCanvas");
+let playButton = document.getElementById("playButton");
+let diffSlider = document.getElementById("difficultySlider");
+
+canvasElem.addEventListener("mousedown", function(e){
 	getMousePosition(canvasElem, e);
 });
+playButton.addEventListener("click", function(f){
+	gameOn = true;
+console.log("GameOn");
+});
 
-
+diffSlider.addEventListener("change", function(g){
+	bugGrowthValue = event.srcElement.value;
+	console.log("Bug incremented!"  + event.srcElement.value);
+});

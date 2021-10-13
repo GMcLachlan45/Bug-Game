@@ -3,6 +3,7 @@
 	var canvas;
 	var poisonList = [];
 	var gameOn = false;
+	var bugGrowthValue = 0.012;
 class bug{
 		constructor(goalEnd, x, y, isBug){
 			this.isDead=false;
@@ -29,7 +30,7 @@ class bug{
 					this.b =1.0;
 				}
 				this.growthFactor= 1.0 + Math.random()*0.3;
-				this.growthIncrement= Math.random()*0.012+0.01 ;/////tanners adding
+				this.growthIncrement= Math.random()*bugGrowthValue ;/////tanners adding
 			}else{
 				this.x = x;
 				this.y = y;
@@ -111,11 +112,16 @@ var fragmentShaderText = [
 '}'
 ].join('\n');
 	
+window.onload = function main(){
 	
+	console.log("uhh");
+	
+}
+
 	
 
-window.onload = function init(){
-	
+var newGame = function init(){
+	gameOn=true;
 	//Initializes the webGL stuff
 	canvas = document.getElementById("glCanvas");
 	var gl = canvas.getContext("webgl");
@@ -369,7 +375,9 @@ window.onload = function init(){
 	};
 	requestAnimationFrame(loop);
 	
-	gameOn =false;
+	
+	poisonList = [];
+	gameOn=false;
 //}
 
 
@@ -451,11 +459,15 @@ canvasElem.addEventListener("mousedown", function(e){
 	getMousePosition(canvasElem, e);
 });
 playButton.addEventListener("click", function(f){
-	gameOn = true;
+	
 console.log("GameOn");
+	if(!gameOn){
+		console.log("No game, starting new one");
+		newGame();
+	}
 });
 
 diffSlider.addEventListener("change", function(g){
-	bugGrowthValue = event.srcElement.value;
+	bugGrowthValue = event.srcElement.value/1000.0;
 	console.log("Bug incremented!"  + event.srcElement.value);
 });

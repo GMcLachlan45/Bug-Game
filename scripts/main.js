@@ -30,12 +30,12 @@ class bug{
 					this.b =1.0;
 				}
 				this.growthFactor= 1.0 + Math.random()*0.3;
-				this.growthIncrement= Math.random()*bugGrowthValue ;/////tanners adding
+				this.growthIncrement= Math.random()*bugGrowthValue +0.005;
 			}else{
 				this.x = x;
 				this.y = y;
 				this.r = 55.0/255.0 * Math.random();
-				this.g = Math.random();
+				this.g = (Math.random()*155.0+100.0)/255.0;
 				this.b = 70.0/255.0*Math.random();
 				this.a= 1.0;
 				this.growthFactor= 1.0;
@@ -270,6 +270,10 @@ var newGame = function init(){
 	
 	var win = false;
 	var lose = false;
+	
+	var wUp=true;
+	var wGr = 227.0;
+	var wBl = 255.0;
 	var loop = function(){
 		win = true;
 		//resizes the viewport
@@ -340,8 +344,29 @@ var newGame = function init(){
 		//draws the outside of the pietry dish
 		
 		gl.uniformMatrix3fv(scalingUniformLocation, false, identityMatrix);
-		gl.uniform4f(fragColorLocation, 227.0/255, 227.0/255, 1.0, 0.9);				
+		gl.uniform4f(fragColorLocation, 227.0/255, wGr/255, wBl/255, 0.9);				
 		gl.drawArrays(gl.TRIANGLE_STRIP,0,startOfInnerCircle);
+		
+		if(bugGoal.bugCount==1){
+			if(wUp){
+				wGr+=0.5;
+				wBl+=0.5;
+				if(wBl>=255.0){
+					wBl = 255.0;
+					wGr= 227.0;
+					wUp =false;
+				}
+			}else{
+				wGr-=0.5;
+				wBl-=0.5;
+				if(wGr<=0){
+					wBl = 28.0;
+					wGr = 0.0;
+					wUp =true;
+				}
+			}	
+				
+		}
 		
 		//draws the pietry dish walls
 		gl.uniform4f(fragColorLocation, 160.0/255, 160.0/255, 232.0/255, 1.0);

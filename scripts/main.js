@@ -15,11 +15,11 @@ class bug{
 				var arcLocation= goalEnd +Math.floor(Math.random()*330);
 				this.x = 0.87* Math.cos(arcLocation*Math.PI/180);
 				this.y = 0.87* Math.sin(arcLocation*Math.PI/180);
-				this.r = Math.random();
+				this.r = Math.random(); //randomize the RGB values
 				this.g = Math.random();
 				this.b = Math.random();
-				this.a= 1.0;
-				switch(Math.floor(Math.random()*3)) {
+				this.a = 1.0;
+				switch(Math.floor(Math.random()*3)) { //to make more appealing colors
 				  case 0:
 					this.r =1.0;
 					break;

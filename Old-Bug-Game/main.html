@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang = "en">		
+<html>
+<head>
+<meta charset="utf-8">
+<title>Buggu Game</title>
+<style>
+table {
+  font-family: arial, sans-serif;
+  border-collapse: collapse;
+  width: 100%;
+}
+
+td {
+  text-align: justify;
+  vertical-align: top;
+  padding: 2px;
+  width: 33%;
+}
+</style>
+<link rel="shortcut icon" href="Bug_Icon.png" type="image/x-icon">
+</head>
+
+<body>
+	<div class = "header">
+	<p style = "vertical-align: top; text-align: right"> By Gabriel, Tanner, and Vinu</p>
+	<h1 style = "text-align: center; margin-top: -4px"> Buggu Game </h1>
+
+	<table>
+		<tr>
+			<td>
+			<h4 style = "text-align: center;">How to Play</h4>
+				<p>
+				Once loaded, the game will begin automatically. The goal is to prevent any two cells from reaching a 30 degree arc somewhere on the edge of the petri dish. 
+				<br>
+				To do this you have 20 drops of poison. Click anywhere within the dish to drop poison. Once dropped, the poison will grow outward, killing any cells it comes in contact with.
+				<br>You win the game if you kill every cell. You lose the game if any 2 cells reach their goal.
+				Good luck!
+				</p>
+			</td>
+		<td>
+
+		<div>
+			<center> 		
+				<canvas id = "glCanvas">
+						>His browser doesn't support canvas
+				</canvas>
+			</center>
+		</div>
+		</td>
+		
+		<td> 
+		<h4 style = "text-align: center;">Options</h4>
+		<center>  <button id="playButton">Play</button> </center>
+		<h4 style = "text-align: center;">Easy Normal Hard</h4>
+		<center>
+		<input id="difficultySlider" type = "range" min="1" max = "101" step = 10 value = "50" />
+		</center>
+		</td>
+		</tr>
+	</table>
+	
+</body>
+
+	<script src = "scripts/main.js"></script>
+</html>

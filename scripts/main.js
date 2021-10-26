@@ -1,5 +1,5 @@
 // various game objects
-
+const { vec2, vec3, mat3, mat4 } = glMatrix;
 	var canvas;
 	var poisonList = [];
 	var gameOn = false;
@@ -91,13 +91,16 @@ class bugGoal{
 var vertexShaderText = [
 'precision mediump float;',
 
-'attribute vec2 vertPosition;',
-'uniform mat3 scaling;',
-'uniform vec2 motion;',
+'attribute vec3 vertPosition;',
+'uniform mat4 vertexTransformations;',
+'uniform mat4 world;',
+'uniform mat4 view;',
+'uniform mat4 proj;',
 'void main()',
 '{',
 'vertPosition;',
-'	gl_Position =  vec4( (scaling * vec3(vertPosition, 1.0) ).xy, 0.0, 1.0);',
+'	mat4 mvp = proj*view*world;',
+'	gl_Position =  mvp*vec4(vertPosition, 1.0);',
 '	gl_PointSize = 5.0;',
 '}'
 ].join('\n');
@@ -132,8 +135,8 @@ var newGame = function init(){
 	if(!gl){
 		alert("Your browser doesn't support webGL");
 	}
-	canvas.width = window.innerHeight;
-	canvas.height = window.innerHeight;
+	canvas.width = window.innerHeight*0.98;
+	canvas.height = window.innerHeight*0.98;
 	gl.viewport(0,0,canvas.width,canvas.height);
 
 	//Compiles the shader objects
@@ -160,6 +163,7 @@ var newGame = function init(){
 	gl.attachShader(program, fragmentShader);
 	gl.linkProgram(program);
 	gl.useProgram(program);
+	gl.enable(gl.DEPTH_TEST);
 	
 	
 	
@@ -170,77 +174,17 @@ var newGame = function init(){
 		console.error('Error linking program', gl.getProgramInfo(program));
 		return;
 	}
-	
-	//Outside the dish
 	var objectVertices = [];
 	
-	for(var i = 0; i<=360; i++){
-		var j = i * Math.PI / 180;
-		objectVertices.push(0.9* Math.cos(j));
-		objectVertices.push(0.9* Math.sin(j));
-		objectVertices.push(2.0* Math.cos(j));
-		objectVertices.push(2.0* Math.sin(j));
-	}
-	 var startOfInnerCircle = objectVertices.length/2;
-	
-	//dish Border
-	for(var i = 0; i<=360; i++){
-		var j = i * Math.PI / 180;
-		objectVertices.push(0.88* Math.cos(j));
-		objectVertices.push(0.88* Math.sin(j));
-		objectVertices.push(0.9* Math.cos(j));
-		objectVertices.push(0.9* Math.sin(j));
-	}
-	
-	var startOfGoal = objectVertices.length/2;
-	//creates the goal for the bugs
-	let goal = new bugGoal();
-	
-	console.log("goal coordinates  start at at "+ goal.start+" "+goal.startX +" end " +goal.end+" " + goal.endY +"\n");
-	for(var i = goal.start; i<=goal.end; i++){
-		var j = i * Math.PI / 180;
-		objectVertices.push(0.88* Math.cos(j));
-		objectVertices.push(0.88* Math.sin(j));
-		objectVertices.push(0.89* Math.cos(j));
-		objectVertices.push(0.89* Math.sin(j));
-	}
-	
-	console.log(" and end at "+ (objectVertices.length/2)+"\n");
-	var border =objectVertices.length/2;
-	objectVertices.push(1.0, 1.0, 0.99,0.99,
-						-1.0, 1.0, -0.99,0.99,
-						-1.0, -1.0, -0.99,-0.99,
-						1.0, -1.0, 0.99, -0.99,
-						1.0, 1.0, 0.99,0.99);
-	
-	var bugListStart = objectVertices.length/2;
-	//TODO create bugs to expand
-	var bugList = [];
-	for(var i =0; i < 10; i++){
-		bugList.push(new bug(
-		goal.end, 0, 0, true));
-		objectVertices.push(bugList[i].x);
-		objectVertices.push(bugList[i].y);
-		for(var ci = 0.0; ci<=360; ci++){
-			var j = ci * Math.PI / 180;
-			objectVertices.push(0.01* Math.cos(j) + bugList[i].x);
-			objectVertices.push(0.01* Math.sin(j) + bugList[i].y);
+	for(let theta = 0; theta <=360; theta+=12){
+		var toRad = Math.PI/180;
+		for(let phi = 0; phi <=180; phi+=6){
+			objectVertices.push(0.7* Math.sin(toRad*theta)*Math.cos(toRad*phi) );
+			objectVertices.push(0.7* Math.sin(toRad*theta)*Math.sin(toRad*phi) );
+			objectVertices.push(0.7* Math.cos(toRad*theta) );
 		}
 	}
-	
-	var poisonListStart = objectVertices.length/2;
-	console.log(" and end at "+ (objectVertices.length/2)+"\n");
-	
-	
-	
-	for(var i =0; i < 20; i++){
-		objectVertices.push(0,0);
-		for(var ci = 0.0; ci<=360; ci+=1){
-			var j = ci * Math.PI / 180;
-			objectVertices.push(0.01* Math.cos(j));
-			objectVertices.push(0.01* Math.sin(j));
-		}
-	}
+	console.log(objectVertices.length/3);
 	
 	var vertexBufferObject = gl.createBuffer();
 	
@@ -253,150 +197,80 @@ var newGame = function init(){
 	var positionAttribLocation = gl.getAttribLocation(program, 'vertPosition');
 	gl.vertexAttribPointer(
 		positionAttribLocation, 
-		2, 
+		3, 
 		gl.FLOAT, 
 		gl.FALSE, 
-		2*Float32Array.BYTES_PER_ELEMENT, 
+		3*Float32Array.BYTES_PER_ELEMENT, 
 		0*Float32Array.BYTES_PER_ELEMENT
 		);
 	gl.enableVertexAttribArray(positionAttribLocation);
 	
-	var scalingUniformLocation = gl.getUniformLocation(program, 'scaling');
+	var worldUniformLocation = gl.getUniformLocation(program, 'world');
+	var viewUniformLocation = gl.getUniformLocation(program, 'view');
+	var projUniformLocation = gl.getUniformLocation(program, 'proj');
 	
 	/////drawing
-	var identityMatrix = new Float32Array([1.0, 0.0, 0.0,
-										   0.0, 1.0, 0.0,
-										   0.0, 0.0, 1.0])
+	var identityMatrix = new Float32Array([1.0, 0.0, 0.0, 0.0,
+										   0.0, 1.0, 0.0,0.0,
+										   0.0, 0.0, 1.0,0.0,
+										   0.0, 0.0, 0.0, 1.0]);
+	var world = new Float32Array(16);
+	mat4.identity(world);
+	//var rot = new Float32Array(16);
+	//var trans = new Float32Array(16);
+	//mat4.identity(rot);
+	//mat4.identity(trans);
+	//var x = -2;
+	//var angle = glMatrix.glMatrix.toRadian(45);
+	//mat4.fromRotation(rot,angle,[0,0,1]);
+	//mat4.fromTranslation(trans,[x,0,0]);
+	//mat4.multiply(world,trans,rot);
+
+	var view = new Float32Array(16);
+	mat4.lookAt(view, [0,0,8], [0,0,1],[0,1,0])
+
+	var proj = new Float32Array(16);
+	mat4.perspective(proj,glMatrix.glMatrix.toRadian(45),canvas.width/canvas.height,0.1,100);
+
+	gl.uniformMatrix4fv(worldUniformLocation, false, world);
+	gl.uniformMatrix4fv(viewUniformLocation, false, view);
+	gl.uniformMatrix4fv(projUniformLocation, false, proj);
 	
-	var win = false;
-	var lose = false;
+		////////stole
+	var angle = 0;
+	var rotz = new Float32Array(16);
+	var rotx = new Float32Array(16);
 	
-	var wUp=true;
-	var wGr = 227.0;
-	var wBl = 255.0;
+	mat4.identity(rotx);
+	mat4.identity(rotx);
+	
+	////////////end stole
+	
 	var loop = function(){
 		win = true;
 		//resizes the viewport
-		canvas.width = window.innerHeight;
+		canvas.width = window.innerWidth;
 		canvas.height = window.innerHeight;
+		
+		/////////stolen
+		angle = performance.now() / 1000;
+		mat4.fromRotation(rotx,angle,[1,0,0]);
+		mat4.fromRotation(rotz,angle,[0,0,1]);
+		mat4.multiply(world,rotz,rotx);
+		
+		//////////endstolen
+		
+		gl.uniformMatrix4fv(worldUniformLocation, false, world);
 		gl.viewport(0,0,canvas.width,canvas.height);
 		
 		// clear the scene
-		gl.clearColor(225.0/255, 240.0/255, 255.0/255, 1.0);
-		gl.clear(gl.COLOR_BUFFER_BIT);	
-		
-		//drawing bugs
-		for(var i =0; i<bugList.length; i++){
-			if(bugList[i].isDead)
-				continue;
+		gl.clearColor(1.0/255, 1.0/255, 255.0/255, 1.0);
+		gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 			
-			gl.uniform4f(fragColorLocation, bugList[i].r, bugList[i].g, bugList[i].b, bugList[i].a);
-			gl.uniformMatrix3fv(scalingUniformLocation, false, getCompleteTransform(bugList[i])); /// matrx for growing shite
-			if(bugList[i].a<=0.4)
-				bugList[i].isDead = true;
-			if(bugList[i].isExploding){
-				for(var x = bugListStart+1+Math.floor(Math.random()*25)+(i*362); x<bugListStart+((i+1)*362);x+=Math.floor(Math.random()*35))
-					gl.drawArrays(gl.POINTS, x, 1 );
-				bugList[i].a-=1.0/255.0;
-				bugList[i].growthFactor+=0.5;
-			}else{
-				win = false;
-				gl.drawArrays(gl.TRIANGLE_FAN, bugListStart+(i*362), 362 );
-				gl.uniform4f(fragColorLocation, 0.0,0.0,0.0,1.0);
-				gl.drawArrays(gl.LINE_LOOP, bugListStart+1+(i*362), 361 );
-				if(bugList[i].isDying){
-					bugList[i].growthFactor/=1.1;
-					if(bugList[i].growthFactor<1.0)
-						bugList[i].isExploding=true;
-				}else{
-					for(var j = 0; j <bugList.length; j++){
-						if(i!=j&& !bugList[j].isDead)
-							bugList[i].checkContains(bugList[j]);
-					}
-					goal.checkLose(bugList[i], i);					
-					bugList[i].growthFactor+=bugList[i].growthIncrement;
-				}
-			}
-		}
-		
-		
-		
-			for(var i =0; i<poisonList.length; i++){
-				gl.uniform4f(fragColorLocation, poisonList[i].r, poisonList[i].g, poisonList[i].b, poisonList[i].a);
-				gl.uniformMatrix3fv(scalingUniformLocation, false, getCompleteTransform(poisonList[i])); /// matrx for growing shite
-				gl.drawArrays(gl.TRIANGLE_FAN, poisonListStart+(i*362), 362 );
-				for(var j = 0; j <bugList.length; j++){
-					poisonList[i].checkPoisoned(bugList[j]);
-				}		
-					
-				poisonList[i].growthFactor+=poisonList[i].growthIncrement;
-			
-		}
-		
-		
-		
-		
-		
-		////////////////////////////////////////////
-		/////////START OF FIELD DRAWING/////////////
-		////////////////////////////////////////////
+		gl.uniform4f(fragColorLocation, 1.0,1.0,1.0,1.0);
+		gl.drawArrays(gl.LINE_LOOP, 0, 961);
 
-		//draws the outside of the pietry dish
-		
-		gl.uniformMatrix3fv(scalingUniformLocation, false, identityMatrix);
-		gl.uniform4f(fragColorLocation, 227.0/255, wGr/255, wBl/255, 0.9);				
-		gl.drawArrays(gl.TRIANGLE_STRIP,0,startOfInnerCircle);
-		
-		if(bugGoal.bugCount==1){
-			if(wUp){
-				wGr+=0.5;
-				wBl+=0.5;
-				if(wBl>=255.0){
-					wBl = 255.0;
-					wGr= 227.0;
-					wUp =false;
-				}
-			}else{
-				wGr-=0.5;
-				wBl-=0.5;
-				if(wGr<=0){
-					wBl = 28.0;
-					wGr = 0.0;
-					wUp =true;
-				}
-			}	
-				
-		}
-		
-		//draws the pietry dish walls
-		gl.uniform4f(fragColorLocation, 160.0/255, 160.0/255, 232.0/255, 1.0);
-		gl.drawArrays(gl.TRIANGLE_STRIP, startOfInnerCircle, startOfInnerCircle);
-		
-		//draws the canvas border
-		gl.uniform4f(fragColorLocation, 0.0, 0.0, 0.0, 1.0);
-		gl.drawArrays(gl.TRIANGLE_STRIP, border, 10);
-		
-		////////////////////////////////////////////
-		//////////END OF FIELD DRAWING//////////////
-		////////////////////////////////////////////		
-		
-		//cHECK IF WE LOST THE GAME
-		if(goal.bugCount >= 2)
-			lose = true;
-		if(lose){
-			//bug goal
-		gl.uniform4f(fragColorLocation, 255.0/255, 20.0/255, 20.0/255, 1.0);
-		gl.drawArrays(gl.TRIANGLE_STRIP, startOfGoal, 62 );
-			console.log("2 bugs have reached the goal... You lose!");
-		}else if(win){
-			//bug goal
-		gl.uniform4f(fragColorLocation, 255.0/255, 20.0/255, 20.0/255, 1.0);
-		gl.drawArrays(gl.TRIANGLE_STRIP, startOfGoal, 62 );
-			console.log("You win!");
-			//print something
-		}else{
-			requestAnimationFrame(loop);
-		}
+		requestAnimationFrame(loop);
 	};
 	requestAnimationFrame(loop);
 	
@@ -406,64 +280,6 @@ var newGame = function init(){
 //}
 
 
-};
-
-function getCompleteTransform(Bug){
-	
-	var finalMatrix = new Float32Array([1.0, 0.0, 0.0,
-										   0.0, 1.0, 0.0,
-										   0.0, 0.0, 1.0]);
-	var translationMatrix = new Float32Array([1.0, 0.0, 0.0,
-										   0.0, 1.0, 0.0,
-										   Bug.x, Bug.y, 1.0]);
-	finalMatrix = multiply3dMatrix(finalMatrix, translationMatrix);
-						// bring back to outside	
-
-						
-						// grow
-	var scalingMatrix = new Float32Array([Bug.growthFactor, 0.0, 0.0,
-										0.0, Bug.growthFactor, 0.0,
-										0.0, 0.0, 1.0]);
-	finalMatrix = multiply3dMatrix(finalMatrix, scalingMatrix);
-
-	if(Bug.isBug){
-		translationMatrix[6] *=-1.0;
-		 
-		translationMatrix[7] *=-1.0;
-		
-		finalMatrix = multiply3dMatrix(finalMatrix, translationMatrix);				
-							//bring to middle ^
-	}
-	return finalMatrix;
-};
-
-
-function multiply3dMatrix(mat2, mat1){
-	var a,b,c,d,e,f,g,h,i,j,k,l,m,n,o,p,q,r;
-	a=mat1[0];
-	b=mat1[1];
-	c=mat1[2];
-	d=mat1[3];
-	e=mat1[4];
-	f=mat1[5];
-	g=mat1[6];
-	h=mat1[7];
-	i=mat1[8];
-	j=mat2[0];
-	k=mat2[1];
-	l=mat2[2];
-	m=mat2[3];
-	n=mat2[4];
-	o=mat2[5];
-	p=mat2[6];
-	q=mat2[7];
-	r=mat2[8];
-	
-	var multMatrix =[(a*j + b*m + c*p), (a*k + b*n + c*q), (a*l + b*o + c*r),
-					 (d*j + e*m + f*p), (d*k + e*n + f*q), (d*l + e*o + f*r),
-					 (g*j + h*m + i*p), (g*k + h*n + i*q), (g*l + h*o + i*r)];
-		
-	return new Float32Array(multMatrix);
 };
 
 function getMousePosition(canvas, event) {
@@ -483,13 +299,10 @@ let diffSlider = document.getElementById("difficultySlider");
 canvasElem.addEventListener("mousedown", function(e){
 	getMousePosition(canvasElem, e);
 });
+
 playButton.addEventListener("click", function(f){
-	
-console.log("GameOn");
-	if(!gameOn){
-		console.log("No game, starting new one");
-		newGame();
-	}
+	console.log("GameOn");
+	newGame();
 });
 
 diffSlider.addEventListener("change", function(g){

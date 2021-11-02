@@ -3,7 +3,7 @@ const { vec2, vec3, mat3, mat4 } = glMatrix;
 	var canvas;
 	var poisonList = [];
 	var gameOn = false;
-	var bugGrowthValue = 0.012;
+	var bugGrowthValue = 2.5;
 class bug{
 		constructor(goalEnd, x, y, isBug){
 			this.isDead=false;
@@ -30,8 +30,8 @@ class bug{
 				  case 2:
 					this.b =1.0;
 				}
-				this.growthFactor= 1.0 + Math.random()*0.3;
-				this.growthIncrement= Math.random()*bugGrowthValue +0.005;
+				this.growthFactor= 1.0 + Math.random();
+				this.growthIncrement= Math.random()*bugGrowthValue +0.5;
 			}else{
 				
 			this.lat = Math.random()*Math.PI*2.0;
@@ -329,8 +329,9 @@ var newGame = function init(){
 	mat4.identity(iden);
 	
 	////////////end stole
+	
+	var win = false; var lose = false;
 	var loop = function(){
-		win = true;
 		//resizes the viewport
 		canvas.width = window.innerWidth;
 		canvas.height = window.innerHeight;
@@ -372,11 +373,11 @@ var newGame = function init(){
 			
 			gl.uniform4f(fragColorLocation, bugList[i].r,bugList[i].g,bugList[i].b,1);// makes the circle red so we can see it.
 			
-	gl.uniformMatrix4fv(transformationUniformLocation, false, bugTransforms(bugList[i].lat, bugList[i].lon, i));
+			gl.uniformMatrix4fv(transformationUniformLocation, false, bugTransforms(bugList[i].lat, bugList[i].lon, i));
 			gl.uniform1f(bugRadLocation, bugList[i].radius);//increases the bug's radius	
 			
 			gl.drawElements(gl.TRIANGLE_STRIP, bugPoints, gl.UNSIGNED_SHORT, (goalPoints+spherePoints)*2);
-			bugList[i].radius+=2;
+			bugList[i].radius+=bugList[i].growthIncrement;
 		}
 	/////////////////////DRAW GOAL/////////////////
 	gl.uniform1f(bugRadLocation, 1);
@@ -384,9 +385,13 @@ var newGame = function init(){
 	gl.uniformMatrix4fv(transformationUniformLocation, false, goalTransMatrix);//used to rotate the goal to where it needs to be
 	gl.drawElements(gl.TRIANGLE_STRIP, goalPoints, gl.UNSIGNED_SHORT, spherePoints*2)
 	/////////////////////END DRAW GOAL/////////////
-		if(bruh)
+		if(win){
+			console.log("You win!");
+		}else if(lose){
+			console.log("You Lose...");s
+		}
+		else 
 			requestAnimationFrame(loop);
-		else;
 	};
 	requestAnimationFrame(loop);
 	
@@ -402,7 +407,7 @@ function bugTransforms(lat, lon, num){
 	
 	var finalTransformMatrix = new Float32Array(16);
 	mat4.identity(finalTransformMatrix);
-	mat4.scale(finalTransformMatrix, finalTransformMatrix, [1.0+num/1000, 1.0+num/1000, 1.0+num/1000]);
+	mat4.scale(finalTransformMatrix, finalTransformMatrix, [1.0+num/500, 1.0+num/500, 1.0+num/500]);
 	mat4.rotateZ(finalTransformMatrix, finalTransformMatrix, lat); //rotates the patch to the proper latitude
 	mat4.rotateY(finalTransformMatrix, finalTransformMatrix, lon); //rotates the patch to the proper longitude
 
@@ -445,7 +450,7 @@ canvasElem.addEventListener("mousedown", function(e){
 
 playButton.addEventListener("click", function(f){
 	console.log("GameOn");
-	if(!gameOn)
+	//if(!gameOn)
 		newGame();
 });
 

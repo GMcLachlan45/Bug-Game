@@ -3,19 +3,24 @@ const { vec2, vec3, mat3, mat4 } = glMatrix;
 	var canvas;
 	var poisonList = [];
 	var gameOn = false;
-	var bugGrowthValue = 2.5;
+	var bugGrowthValue = 1*Math.PI/180.0;
+	var translu = false;
+	var stop = true;
+	var camLat =-0;
+	var camLon = -0;
+	var win = false;
 class bug{
-		constructor(goalEnd, x, y, isBug){
+		constructor(goalLat,goalLon, x, y, isBug){
 			this.isDead=false;
 			this.isDying=false;
 			this.isExploding=false;
 			this.radius = 0.01;
 			this.isBug = isBug;
-			if(isBug){
-				var arcLocation= goalEnd +Math.floor(Math.random()*330);
+			if(isBug){				
+				this.lat =Math.random()*Math.PI;//Math.random()*Math.PI*2.0;
+					this.lon =Math.random()*Math.PI;
 				
-			this.lat = Math.random()*Math.PI*2.0;
-			this.lon = Math.random()*Math.PI*2.0;
+				
 				this.r = Math.random(); //randomize the RGB values
 				this.g = Math.random();
 				this.b = Math.random();
@@ -30,24 +35,33 @@ class bug{
 				  case 2:
 					this.b =1.0;
 				}
-				this.growthFactor= 1.0 + Math.random();
-				this.growthIncrement= Math.random()*bugGrowthValue +0.5;
+				this.growthIncrement= bugGrowthValue +0.5;
 			}else{
+				this.lat = Math.random()*Math.PI ;
+				this.lon = Math.random()*Math.PI*2.0;
 				
-			this.lat = Math.random()*Math.PI*2.0;
-			this.lon = Math.random()*Math.PI*2.0;
 			
 				this.r = 55.0/255.0 * Math.random();
 				this.g = (Math.random()*155.0+100.0)/255.0;
 				this.b = 70.0/255.0*Math.random();
 				this.a= 1.0;
-				this.growthFactor= 1.0;
-				this.growthIncrement = 0.02;
+				this.growthIncrement = bugGrowthValue;
 			}
 		}
 	checkPoisoned(poisonedBug){
-		if(Math.sqrt(Math.pow(this.x-poisonedBug.x, 2) + Math.pow(this.y-poisonedBug.y, 2)) < this.radius*this.growthFactor+poisonedBug.radius*poisonedBug.growthFactor){
-			poisonedBug.isDying = true;
+		//calculates distance between points using haversine shit
+		
+		var dlat = poisonedBug.lat -this.lat;
+		var dlon = poisonedBug.lon - this.lon;
+
+		var a = (Math.pow(Math.sin(dlat/2.0) ,2) + Math.cos(this.lat)*Math.cos(poisonedBug.lat)* Math.pow(Math.sin(dlon/2.0) ,2));
+		var bugCenterDifference =  2*Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+		
+		var bothRadiusLength = this.radius+poisonedBug.radius;
+		console.log(""+bugCenterDifference+" "+bothRadiusLength);
+		
+		if(bugCenterDifference<bothRadiusLength){
+			win = true;//poisonedBug.isDying = true;
 		}
 	}
 	checkContains(smallerBug){
@@ -82,7 +96,7 @@ class bugGoal{
 }
 
 
-	
+	var raf = 3;
 var tr = 0;
 var bruh = true;
 var stop = false;
@@ -141,8 +155,8 @@ var newGame = function init(){
 	if(!gl){
 		alert("Your browser doesn't support webGL");
 	}
-	canvas.width = window.innerHeight*0.98;
-	canvas.height = window.innerHeight*0.98;
+	canvas.width = window.innerWidth*0.98;
+	canvas.height = window.innerWidth*0.98*9.0/16.0;
 	gl.viewport(0,0,canvas.width,canvas.height);
 
 	//Compiles the shader objects
@@ -176,7 +190,7 @@ var newGame = function init(){
 	
 	
 	var objectVertices = [];
-	var divisions = 40;
+	var divisions = 190;
 	var toRad = Math.PI/180;
 	for(let theta = 0; theta <=360; theta+=360/divisions){
 		for(let phi = 0; phi <=180; phi+=180/divisions){
@@ -198,7 +212,7 @@ var newGame = function init(){
 	
 	var vertBeforeGoal = objectVertices.length/3; //gets the point number in objvert. Add to whatever needs to be done
 	var spherePoints = indices.length;//gets the number of points to draw for the sphere doubles as the offset for start of goal
-	console.log(indices.length);
+	//console.log(indices.length);
 	
 	
 	///////////////Creating bug goalEnd
@@ -216,7 +230,6 @@ var newGame = function init(){
 		for(var count = 0; count<49; count++){
 			indices.push(count+vertBeforeGoal);
 		}
-		console.log(indices);
 	var goalTransMatrix = goalTransforms(goal.lon, goal.lon, goal.rotation);
 	
 	var vertBeforeBugs = objectVertices.length/3; //gets the point number in objvert. Add to whatever needs to be done for bug
@@ -224,11 +237,11 @@ var newGame = function init(){
 	
 	
 	/////////////////////////
-	var pl = 0.01*Math.PI/180;// this is starting rad longitude for some reason
-		for(var sec = 0.00; sec<=1.0; sec+=1.0/divisions){
-			console.log(objectVertices.length/3);
+	var startingRad = 1;//that is one degree	;// this is starting rad longitude for some reason
+		for(var seg = 0.00; seg<=1.0; seg+=1.0/divisions){ //divide each bitch into segments
+			//console.log(objectVertices.length/3);
 			for(var i = 0; i<=360; i+=360/divisions){
-				objectVertices.push(i*toRad, pl, sec);
+				objectVertices.push(i*toRad, startingRad, seg);
 			}
 		}	
 	for(let j = 0; j<divisions; j++){
@@ -239,13 +252,18 @@ var newGame = function init(){
 		}
 	}
 	
+	
+	
 	var bugPoints = indices.length-spherePoints-goalPoints; ///lastPoints
 	var bugList = [];
-	for(var i = 0; i <10; i++){
-		bugList.push(new bug(0, 0, 0, true));
+	for(var i = 0; i <1; i++){
+		bugList.push(new bug(goal.lat, goal.lon, 0, 0, true));
+		console.log("Bug " + +1+": "+bugList[i].lon+ ", " + bugList[i].lat);
 	}
-	console.log(bugList.length);	
-		
+	//console.log(bugList.length);
+	
+	var axis = objectVertices.length/3;
+	objectVertices.push(-2,0,0,2,0,0,0,-2,0,0,2,0,0,0,-2,0,0,2 , -3,0,-3,3,0,3);
 		
 	///////GET THE LOCATION TO CHANGE TO PROJECTING ON THE SPHERE. X>0.5 MEANS IT'S ON SPHERE, X<0.5 MEANS WE JUST DRAW NORMALLY
 	var sphereProjectionLocation = gl.getUniformLocation(program, 'projecting');
@@ -291,14 +309,15 @@ var newGame = function init(){
 	//initializes the canvas to fill its space
 	
 	canvas.width = window.innerWidth;
-	canvas.height = window.innerHeight;
+		canvas.height = window.innerWidth*9.0/16.0;
 	//SETS THE WORLD SO THAT IT'S NORMAL, 1-1. DON'T NEED TO WORRY ABOUT IT ANYMORE
 	var world = new Float32Array(16);
 	mat4.identity(world);
 	
 	///SETS THE CAMERA, WILL NEED TO CHANGE IN LOOP IF WE WANNA SPIN AROUND
 	var view = new Float32Array(16);
-	mat4.lookAt(view, [0,0,3]/*POINT IN SPACE WHERE THE EYE IS*/, 
+	//todo fix camera
+	mat4.lookAt(view, [raf*Math.sin(camLat*toRad)*Math.cos(camLon*toRad),raf*Math.sin(camLat*toRad)*Math.cos(camLon*toRad),raf*Math.cos(camLat*toRad)]/*POINT IN SPACE WHERE THE EYE IS*/, 
 				[0,0,0]/*POINT WE'RE LOOKING AT*/, 
 				[0,1,0]);//up
 				
@@ -328,21 +347,27 @@ var newGame = function init(){
 	mat4.identity(rotz);
 	mat4.identity(iden);
 	
-	////////////end stole
-	
-	var win = false; var lose = false;
+	/////////////end stole
+	 var lose = false;
 	var loop = function(){
+		//win = true;
 		//resizes the viewport
 		canvas.width = window.innerWidth;
-		canvas.height = window.innerHeight;
+		canvas.height = window.innerWidth*9.0/16.0;
+		
+		
+		mat4.lookAt(view, [0,0,3]/*POINT IN SPACE WHERE THE EYE IS*/, 
+				[0,0,0]/*POINT WE'RE LOOKING AT*/, 
+				[0,Math.abs(Math.cos(camLat)),0]);//up
+				//console.log(camLat);		
+		gl.uniformMatrix4fv(viewUniformLocation, false, view);
 		
 		gl.uniformMatrix4fv(transformationUniformLocation, false, iden);
 		
-		/////////stolen
-		angle = -1*performance.now() / 5000;
-		mat4.fromRotation(rotz,angle,[0,1,0]);
-		mat4.multiply(world,rotz,iden);
-		//////////endstolen
+		
+		
+		mat4.multiply(world, camTransforms(camLat, camLon), iden);// gets proper camera Location
+		//console.log(camLat, +" "+ camLon);
 		
 		gl.uniformMatrix4fv(worldUniformLocation, false, world);
 		gl.viewport(0,0,canvas.width,canvas.height);
@@ -355,12 +380,42 @@ var newGame = function init(){
 		//////////////DRAW SPHERE
 		gl.uniform1f(sphereProjectionLocation, 0.0);//sets to normal drawing		
 		gl.uniform4f(fragColorLocation, 1.0,1.0,1.0,1.0);
-		if(bruh)
+		if(!translu)
 			gl.drawElements(gl.TRIANGLE_STRIP, spherePoints, gl.UNSIGNED_SHORT, 0); //Draws the sphere
 		
 		gl.uniform4f(fragColorLocation, 0.0,0.0,0.0, 1.0);
 		gl.drawElements(gl.LINE_STRIP, spherePoints, gl.UNSIGNED_SHORT, 0); //Draws the mesh
 		//////////////////END DRAW SPHERE
+		
+		gl.uniform4f(fragColorLocation, 1,0,0,1);
+		gl.drawArrays(gl.LINES, axis, 2);
+		gl.drawArrays(gl.POINT, axis+1, 1);
+		gl.uniform4f(fragColorLocation, 0,1,0,1);
+		gl.drawArrays(gl.LINES, axis+2, 2);
+		gl.drawArrays(gl.POINT, axis+3, 1);
+		gl.uniform4f(fragColorLocation, 0,0,1,1);
+		gl.drawArrays(gl.LINES, axis+4, 2);
+		
+		gl.drawArrays(gl.POINT, axis+5, 1);
+		
+		
+					
+					gl.uniformMatrix4fv(transformationUniformLocation, false, bugTransforms(bugList[0].lat, bugList[0].lon, 0));
+		gl.uniform4f(fragColorLocation, 0,0.5,0.5,1);
+		gl.drawArrays(gl.LINES, axis+4, 2);
+		
+		gl.drawArrays(gl.POINT, axis+5, 1);
+		
+		for(var i = 0; i <poisonList.length; i++){
+			gl.uniformMatrix4fv(transformationUniformLocation, false, bugTransforms(poisonList[i].lat, poisonList[i].lon, 0));
+		gl.uniform4f(fragColorLocation, 0,0.5,0.5,1);
+		gl.drawArrays(gl.LINES, axis+4, 2);
+		
+		gl.drawArrays(gl.POINT, axis+5, 1);
+		}
+		
+		
+		gl.uniformMatrix4fv(transformationUniformLocation, false, iden);
 		
 		gl.uniform1f(sphereProjectionLocation, 1.0);// Changes to drawing on the surface of the sphere
 		//DRAW GOAL/////////////////
@@ -369,24 +424,77 @@ var newGame = function init(){
 		
 		
 		///DRAW BUGS
+		
 		for(var i = 0; i< bugList.length; i++){
-			
-			gl.uniform4f(fragColorLocation, bugList[i].r,bugList[i].g,bugList[i].b,1);// makes the circle red so we can see it.
-			
-			gl.uniformMatrix4fv(transformationUniformLocation, false, bugTransforms(bugList[i].lat, bugList[i].lon, i));
-			gl.uniform1f(bugRadLocation, bugList[i].radius);//increases the bug's radius	
-			
-			gl.drawElements(gl.TRIANGLE_STRIP, bugPoints, gl.UNSIGNED_SHORT, (goalPoints+spherePoints)*2);
-			bugList[i].radius+=bugList[i].growthIncrement;
+				
+			if(bugList[i].isDead){//CASE, Bug isn't dead
+				//win = false;
+				continue;
+			}else if(bugList[i].isExploding){
+					//make explosion
+					console.log("eee");
+					bugList[i].isDead = true;
+				}else {
+					//win = false;
+					gl.uniform4f(fragColorLocation, bugList[i].r,bugList[i].g,bugList[i].b,1);// makes the bug its color
+					
+					gl.uniformMatrix4fv(transformationUniformLocation, false, bugTransforms(bugList[i].lat, bugList[i].lon, i));
+					gl.uniform1f(bugRadLocation, bugList[i].radius);//increases the bug's radius	
+					if(!translu)
+					gl.drawElements(gl.TRIANGLE_STRIP, bugPoints, gl.UNSIGNED_SHORT, (goalPoints+spherePoints)*2);
+					
+					if(bugList[i].isDying){
+					// draw but make shringk
+						bugList[i].radius/=1.02;
+						if(bugList[i].radius < 1){
+							console.log("why");
+							bugList[i].isExploding = true;
+						}
+					}else{
+						if(!win)
+							bugList[i].radius+=0.1*Math.PI/180;//bugList[i].growthIncrement;
+					}
+					//console.log("eee");
+				}
+			//if bug is dead, we don't draw him
 		}
+		
+		
+		
+		/////////////////////DRAW POISON////////
+	
+		for(var i = 0; i < poisonList.length; i++){
+			gl.uniform4f(fragColorLocation, poisonList[i].r,poisonList[i].g,poisonList[i].b,1);// makes the bug its color
+			gl.uniformMatrix4fv(transformationUniformLocation, false, bugTransforms(poisonList[i].lat, poisonList[i].lon, i));
+			gl.uniform1f(bugRadLocation, poisonList[i].radius);//increases the bug's radius	
+			if(!translu)
+			gl.drawElements(gl.TRIANGLE_STRIP, bugPoints, gl.UNSIGNED_SHORT, (goalPoints+spherePoints)*2);
+							
+			for(var j = 0; j < bugList.length; j++){
+				if(bugList[j].isDead||win)
+					continue;
+				else
+					poisonList[i].checkPoisoned(bugList[j]);
+			}
+			if(!win)
+				poisonList[i].radius+=0.1*Math.PI/180;//poisonList[i].growthIncrement;
+			
+		}
+		
+		
+		////////////END DRAW POISON////////////////
+		
+		
+		
 	/////////////////////DRAW GOAL/////////////////
 	gl.uniform1f(bugRadLocation, 1);
 	gl.uniform4f(fragColorLocation, 0,0,1,1);
 	gl.uniformMatrix4fv(transformationUniformLocation, false, goalTransMatrix);//used to rotate the goal to where it needs to be
-	gl.drawElements(gl.TRIANGLE_STRIP, goalPoints, gl.UNSIGNED_SHORT, spherePoints*2)
+	//gl.drawElements(gl.TRIANGLE_STRIP, goalPoints, gl.UNSIGNED_SHORT, spherePoints*2)
 	/////////////////////END DRAW GOAL/////////////
-		if(win){
-			console.log("You win!");
+	
+		if(stop/*||/* bugList[0].radius >=3*Math.PI/4*/	){
+			console.log( bugList[0].radius +" You win!");
 		}else if(lose){
 			console.log("You Lose...");s
 		}
@@ -404,12 +512,25 @@ var newGame = function init(){
 };
 
 function bugTransforms(lat, lon, num){
+	if(num<1)
+		num=0;
+	var finalTransformMatrix = new Float32Array(16);
+	mat4.identity(finalTransformMatrix);
+	mat4.scale(finalTransformMatrix, finalTransformMatrix, [1.0+num/2000, 1.0+num/2000, 1.0+num/2000]);
+	
+	mat4.rotate(finalTransformMatrix, finalTransformMatrix, -lat, [Math.cos(lon), 0, Math.cos(lon)]); //rotates the patch to the proper latitude
+	mat4.rotateY(finalTransformMatrix, finalTransformMatrix, lon); //first, rotates the patch to the proper longitude
+
+	return finalTransformMatrix;
+}
+
+function camTransforms(lat, lon){
 	
 	var finalTransformMatrix = new Float32Array(16);
 	mat4.identity(finalTransformMatrix);
-	mat4.scale(finalTransformMatrix, finalTransformMatrix, [1.0+num/500, 1.0+num/500, 1.0+num/500]);
-	mat4.rotateZ(finalTransformMatrix, finalTransformMatrix, lat); //rotates the patch to the proper latitude
-	mat4.rotateY(finalTransformMatrix, finalTransformMatrix, lon); //rotates the patch to the proper longitude
+	
+	mat4.rotateX(finalTransformMatrix, finalTransformMatrix, lat); //rotates the patch to the proper latitude
+	mat4.rotateY(finalTransformMatrix, finalTransformMatrix, -lon); //first, rotates the patch to the proper longitude
 
 	return finalTransformMatrix;
 }
@@ -417,18 +538,24 @@ function bugTransforms(lat, lon, num){
 function goalTransforms(lat, lon, rot){
 	var finalTransformMatrix = new Float32Array(16);
 	mat4.fromXRotation(finalTransformMatrix, rot);//creates the oriented matrix, properly rotated so the patch is cool
-	mat4.rotateZ(finalTransformMatrix, finalTransformMatrix, lat); //rotates the patch to the proper latitude
-	mat4.rotateY(finalTransformMatrix, finalTransformMatrix, lon); //rotates the patch to the proper longitude
+	
+	mat4.rotate(finalTransformMatrix, finalTransformMatrix, lat, [Math.cos(lon), 0, Math.cos(lon)]); //rotates the patch to the proper latitude
+	mat4.rotateY(finalTransformMatrix, finalTransformMatrix, lon); //first, rotates the patch to the proper longitude
 	
 	return finalTransformMatrix;	
 }
 
 function getMousePosition(canvas, event) {
 	let rect = canvas.getBoundingClientRect();
-	let x = 2.0*((event.clientX - rect.left)/canvas.width)-1.0;
-	let y = (2.0*((event.clientY - rect.top)/canvas.height)-1.0)*-1;
-	if(poisonList.length < 20 && Math.sqrt(Math.pow(x,2)+Math.pow(y,2))<0.88)
-		poisonList.push(new bug(0,x, y, false));
+	let x = (2.0*((event.clientX - rect.left)/canvas.width)-1.0)*bugGrowthValue;
+	let y = ((2.0*((event.clientY - rect.top)/canvas.height)-1.0)*-1)*bugGrowthValue;
+	console.log("canvas x: "+x+ " y: "+ y);
+	///convert that to a thinkg on the sphere
+	/*if(Math.sqrt(Math.pow(x,2)+Math.pow(y,2))<1.0){
+		//calculate 
+		poisonList.push(new bug(0,0, x, y, false));
+		console.log("Poison "+ poisonList.length+ ": "+poisonList[poisonList.length-1].lon+ ", " + poisonList[poisonList.length-1].lat);
+	}*/
 }
 
 //sets up the option menu
@@ -438,24 +565,125 @@ let playButton = document.getElementById("playButton");
 let diffSlider = document.getElementById("difficultySlider");
 
 let bruhButton = document.getElementById("bruhButton");
-canvasElem.addEventListener("mousedown", function(e){
-	tr+=16;
-	if(bruh)
-		bruh = false;
-	else
-		bruh = true;
-	console.log(tr);
+/*canvasElem.addEventListener("mousedown", function(e){
+	
 	getMousePosition(canvasElem, e);
-});
+});*/
 
 playButton.addEventListener("click", function(f){
 	console.log("GameOn");
-	//if(!gameOn)
 		newGame();
 });
-
+bruhButton.addEventListener("click", function(d){
+	if(translu)
+		translu = false;
+	else
+		translu = true;
+});
+stopButton.addEventListener("click", function(d){
+	if(stop)
+		stop = false;
+	else
+		stop = true;
+});
 
 diffSlider.addEventListener("change", function(g){
 	bugGrowthValue = event.srcElement.value/100.0;
 	console.log("Bug incremented!"  + event.srcElement.value);
 });
+document.addEventListener("keydown", function(z){
+	switch(event.keyCode){
+		case 87:
+		camLat+=0.1;
+		break;
+		case 65:
+		camLon-=0.1;
+		break;
+		case 68:
+		camLon+=0.1;
+		break;
+		case 83:
+		camLat-=0.1;
+		break;
+		
+		
+		case 38:
+		camLat+=0.01;
+		break;
+		case 37:
+		camLon-=0.01;
+		break;
+		case 39:
+		camLon+=0.01;
+		break;
+		case 40:
+		camLat-=0.01;
+		break;
+		
+		case 90:
+		if(raf==3)
+			raf=5;
+		else
+			raf=3;
+		break;
+	}
+});
+
+//clickand drag
+var minDelta = 0.000005;
+var moved = false;
+var clicked=false;
+var startX;
+var startY
+canvasElem.addEventListener("mousedown", function(cd){
+	let rect = canvas.getBoundingClientRect();
+	startX = 2.0*((event.clientX - rect.left)/canvas.width)-1.0;
+	startY = (2.0*((event.clientY - rect.top)/canvas.height)-1.0)*-1;
+	lastX =startX;
+	lastY = startY;
+	clicked=true;
+});
+
+var lastX;
+var lastY;
+canvasElem.addEventListener("mousemove", function(cm){
+	if(clicked){
+	let rect = canvas.getBoundingClientRect();
+	newX = 2.0*((event.clientX - rect.left)/canvas.width)-1.0;
+	newY = (2.0*((event.clientY - rect.top)/canvas.height)-1.0)*-1;
+	
+	console.log(newX-startX +" "+ (newY-startY));
+	if(newX-startX >minDelta || newY-startY>minDelta || newX-startX <-1*minDelta || newY-startY<-1*minDelta ){
+		moved=true;
+		console.log("moved");
+	}
+	
+	if(moved){
+		camLon = camLon- (newX-lastX);
+		camLat  = camLat-(newY-lastY);
+	}
+	lastX=newX;
+	lastY=newY;
+	}
+});
+
+canvasElem.addEventListener("mouseup", function(cu){
+	if(!moved){
+		getMousePosition(canvasElem, cu);
+	}
+	moved = false
+	clicked=false;
+	
+});
+
+
+
+///////////AHHHHHHHHH finding the barycentric coordinates
+
+function getXyzCoordinates(x,y){
+	z = 1- x*x-y*y;
+	if(z<0)
+		console.log("Out of circle");
+	else
+		console.log("affline x: "+x+" y: "+y+" z: " +z);
+}

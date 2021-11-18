@@ -3,13 +3,15 @@ const { vec2, vec3, vec4, mat3, mat4 } = glMatrix;
 	var canvas;
 	var poisonList = [];
 	var gameOn = false;
-	var bugGrowthValue = Math.PI/180.0; //the growth value that will be between 
-	var translu = false;
+	var bugGrowthValue = Math.PI/1800.0; //the growth value that will be between 
+	var lighting = false;
 	var stop = true;
 	var camLat =-0;
 	var camLon = -0;
 	var win = false;
 	var stop = false;
+	var loseFinishing = false;
+	var winFinishing = false;
 class bug{
 	constructor(goalLat,goalLon, x, y, isBug){
 		this.isDead=false;
@@ -113,13 +115,19 @@ var vertexShaderText = [
 'uniform float projecting;',
 'uniform float radius;',
 
+'varying float shading;',
 'void main(){',
-'vertPosition;',
+'	vertPosition;',
+'	vec4 pos;',
 '	mat4 mvp = proj*view*world;',
 '	if(projecting<0.5)',
-'		gl_Position =  mvp*vertexTransformation*vec4(vertPosition, 1.0);',
+'		pos =  mvp*vertexTransformation*vec4(vertPosition, 1.0);',
 '	else',
-'		gl_Position =  mvp*vertexTransformation* vec4(cos(vertPosition.x)*sin(vertPosition.y*vertPosition.z*radius),sin(vertPosition.x)*sin(vertPosition.y*vertPosition.z*radius),cos(vertPosition.y*vertPosition.z*radius), 1.0);',
+'		pos =  mvp*vertexTransformation* vec4(cos(vertPosition.x)*sin(vertPosition.y*vertPosition.z*radius),sin(vertPosition.x)*sin(vertPosition.y*vertPosition.z*radius),cos(vertPosition.y*vertPosition.z*radius), 1.0);',
+
+'	gl_Position = pos;',
+
+'	shading = length(vec3(0.82,0.41,0.41)-pos.xyz)/2.0;',
 '	gl_PointSize = 2.0;',
 '}'
 ].join('\n');
@@ -128,9 +136,9 @@ var fragmentShaderText = [
 'precision mediump float;',
 'uniform vec4 fragColor;',
 
-'void main()',
-'{',
-'	gl_FragColor = fragColor;',
+'varying float shading;',
+'void main(){',
+'	gl_FragColor = shading*shading*fragColor;',
 '}'
 ].join('\n');
 	
@@ -140,7 +148,7 @@ window.onload = function main(){
 
 var newGame = function init(){
 	gameOn=true;
-	
+	console.log(bugGrowthValue);
 	//Initializes the webGL stuff
 	canvas = document.getElementById("glCanvas");
 	var gl = canvas.getContext("webgl");
@@ -324,8 +332,14 @@ var newGame = function init(){
 	mat4.identity(iden);
 	
 	var lose = false;
+	var backR =225.0; var backG = 240.0; var backB = 255.0; var backA = 1.0;
+	var sphereC = [0.0,0.0,0.0];//[1.0,1.0,1.0];
 	
+	var bugBreach = 0;
+	var randRGB = Math.floor(Math.random()*3);
+	var up = 0;
 	var loop = function(){
+		bugBreach =0;
 		win = true;
 		//resizes the viewport
 		canvas.width = window.innerWidth*0.9;
@@ -343,37 +357,43 @@ var newGame = function init(){
 		gl.uniformMatrix4fv(worldUniformLocation, false, world);
 		
 		// clear the scene
-		gl.clearColor(225.0/255, 240.0/255, 255.0/255, 1.0);
+		
+		
+			
+		gl.clearColor(backR/255, backG/255, backB/255, 1.0);
+		
 		gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 		
 		//DRAW SPHERE
 		gl.uniform1f(sphereProjectionLocation, 0.0); //sets to normal drawing		
-		gl.uniform4f(fragColorLocation, 1.0,1.0,1.0,1.0); //sets color to white
-		if(!translu)
+		gl.uniform4f(fragColorLocation, sphereC[0],sphereC[1],sphereC[2],1.0); //sets color to white
+		
+		if(Math.floor(window.performance.now())%100==0){
+			randRGB = Math.floor(Math.random()*3);
+			up = Math.floor(Math.random()*2);
+		}
+		if(!winFinishing&&!loseFinishing){
+			if(up==1)
+				sphereC[randRGB]+= Math.random()*0.005;
+			else
+				sphereC[randRGB]-= Math.random()*0.005;
+			if(sphereC[randRGB]<0)
+				sphereC[randRGB] = 0;
+			if(sphereC[randRGB]>1)
+				sphereC[randRGB] =1;			
+		}
+			
 		gl.drawElements(gl.TRIANGLE_STRIP, spherePoints, gl.UNSIGNED_SHORT, 0); //Draws the sphere
 		
 		gl.uniform4f(fragColorLocation, 0.0,0.0,0.0, 1.0);
-		if(!translu)
 		//gl.drawElements(gl.LINE_STRIP, spherePoints, gl.UNSIGNED_SHORT, 0); //Draws the mesh
 		
-		/*{//DRAWS AXES for debugging
-		gl.uniform4f(fragColorLocation, 1,0,0,1);
-		gl.drawArrays(gl.LINES, axis, 2);//xaxis
-		gl.drawArrays(gl.POINT, axis+1, 1);
 		
-		gl.uniform4f(fragColorLocation, 0,1,0,1);
-		gl.drawArrays(gl.LINES, axis+2, 2);//yaxis
-		gl.drawArrays(gl.POINT, axis+3, 1);
-		
-		gl.uniform4f(fragColorLocation, 0,0,1,1);
-		gl.drawArrays(gl.LINES, axis+4, 2);//zaxis
-		gl.drawArrays(gl.POINT, axis+5, 1);
-		}
-			*/	
 		gl.uniformMatrix4fv(transformationUniformLocation, false, iden);
 		// Changes to drawing on the surface of the sphere
 		
 		///DRAW BUGS
+		if(!winFinishing){
 		for(var i = 0; i< bugList.length; i++){	
 			if(bugList[i].isDead){//CASE, Bug is dead, then we don't draw him
 				continue;
@@ -394,11 +414,11 @@ var newGame = function init(){
 			}else {
 				win=false;
 				gl.uniform1f(sphereProjectionLocation, 1.0);
-				win = false;
 				gl.uniform4f(fragColorLocation, bugList[i].r,bugList[i].g,bugList[i].b,1);// makes the bug its color	
 				gl.uniformMatrix4fv(transformationUniformLocation, false, bugTransforms(bugList[i].lat, bugList[i].lon, i));//moves the bug where it needs to be
 				gl.uniform1f(bugRadLocation, bugList[i].radius); //updates the bug's radius	
 				gl.drawElements(gl.TRIANGLE_STRIP, bugPoints, gl.UNSIGNED_SHORT, (expPoints+spherePoints)*2);//draws the bug
+				
 				if(bugList[i].isDying){//make the radius shrink
 					bugList[i].radius/=1.1;
 					if(bugList[i].radius < toRad)//if the bug is smaller than 1 degree, make it explode
@@ -407,10 +427,48 @@ var newGame = function init(){
 					for(var j = 0; j < bugList.length; j++)//checks to see if this poison killed any bugs
 						if(i!=j && !bugList[j].isDead)
 							bugList[i].checkContains(bugList[j]);//check to see if we consume the small bug
-					bugList[i].radius+=bugList[i].growthIncrement; //make the bug smaller
+						
+				
+					if(bugList[i].radius>30*toRad){//checks to see if we've lost
+					bugList[i].r/=1.04;//darkens losing bugs
+					bugList[i].g/=1.04;
+					bugList[i].b/=1.04;
+					console.log("Breach " + i);
+						if(bugBreach>0)
+							lose=true;
+						else
+							bugBreach++;
+					}
+					
+					if(!loseFinishing)
+						bugList[i].radius+=bugList[i].growthIncrement; //make the bug bigger
 				}
 			}
 			//if bug is dead, we don't draw him
+		}
+		}
+		if(win&!winFinishing)
+			winFinishing = true;
+		if(lose&!loseFinishing)
+			loseFinishing = true;
+		
+		if(winFinishing){
+			backA = 1.0;
+			if(backG>0.75)
+				backG-=0.005
+			backR/=1.08;
+			backB/=1.08;
+			if(backR<5.0)
+				winFinishing=false;
+		}
+		if(loseFinishing){
+			backA = 0.9;
+			if(backR<255.0)
+				backR = Math.min(backR*1.005, 255.0);
+			backG/=1.08;
+			backB/=1.08;
+			if(backG<5.0)
+				loseFinishing=false;
 		}
 		
 		///DRAW POISON	
@@ -424,20 +482,15 @@ var newGame = function init(){
 			
 			for(var j = 0; j < bugList.length; j++)//checks to see if this poison killed any bugs
 				if(!bugList[j].isDead)
-					poisonList[i].checkPoisoned(bugList[j]);	
-			poisonList[i].radius+=poisonList[i].growthIncrement;
+					poisonList[i].checkPoisoned(bugList[j]);
+			if(!winFinishing&&!loseFinishing)
+				poisonList[i].radius+=poisonList[i].growthIncrement;
 		}
-		/*
-		///DRAW GOAL
-		gl.uniform1f(bugRadLocation, 1);
-		gl.uniform4f(fragColorLocation, 0,0,1,1);
-		gl.uniformMatrix4fv(transformationUniformLocation, false, bugTransforms(goal.lat, goal.lon, 100));//used to rotate the goal to where it needs to be
-		gl.drawElements(gl.TRIANGLE_STRIP, goalPoints, gl.UNSIGNED_SHORT, spherePoints*2)
-	*/
-		if(win){
+		
+		if(win&&!winFinishing){
 			console.log("You win!");
-		}else if(lose||stop){
-			console.log("You Lose...");s
+		}else if((lose&&!loseFinishing)||stop){
+			console.log("You Lose...");
 		}else 
 			requestAnimationFrame(loop);
 	};
@@ -470,14 +523,6 @@ function camTransforms(lat, lon){
 	return finalTransformMatrix;
 }
 
-/*
-function goalTransforms(lat, lon, rot){
-	var finalTransformMatrix = bugTransforms(lat, lon, 0); //uses the lat-lon finder in bugTransforms
-	mat4.rotateZ(finalTransformMatrix, finalTransformMatrix, rot); //spins the goal so it's rotation is cool
-	return finalTransformMatrix;	
-}
-*/
-
 function expTransforms(lat, lon, rad){
 	
 	var finalTransformMatrix = new Float32Array(16);
@@ -497,19 +542,14 @@ function addPoison(canvas, event) {
 	let x = ((2*(event.clientX - rect.left)/canvas.width)-1)*16/9;
 	let y = ((2*(event.clientY - rect.top)/canvas.height)-1);
 	
-	
 	let gotZ = Math.sqrt(1- x*x-y*y);
-	console.log("canvas \nx: "+x+ " \ny: "+ y+ " \nz: " + gotZ);
-	///convert that to a thinkg on the sphere
+	//convert that to a poison on the sphere
 	
 	var mat = bugTransforms(camLat, -1*camLon, 0);
 	var vec = vec4.fromValues(x,y,gotZ, 1);
 	
 	vec4.transformMat4(vec, vec, mat);
-	
-	
-	
-	
+
 	var lat = Math.acos(vec[1])-Math.PI/2; 
     var lon = Math.atan(vec[0]/vec[2]); 
 	if(vec[2]<0)
@@ -517,11 +557,8 @@ function addPoison(canvas, event) {
 	
 	console.log("canvas \nlon: "+lon+ " \nlat: "+ lat);
 	
-	if(gotZ>0){
-		//calculate 
-		poisonList.push(new bug(0,0, -1*lon,-1*lat, false));
-		//console.log("Poison "+ poisonList.length+ ": "+poisonList[poisonList.length-1].lon+ ", " + poisonList[poisonList.length-1].lat);
-	}
+	if(gotZ>0)//Put the bug where it needs to be
+		poisonList.push(new bug(0,0, -1*lon,-1*lat, false));		
 }
 
 //sets up the option menu
@@ -531,20 +568,17 @@ let playButton = document.getElementById("playButton");
 let diffSlider = document.getElementById("difficultySlider");
 
 let bruhButton = document.getElementById("bruhButton");
-/*canvasElem.addEventListener("mousedown", function(e){
-	
-	getMousePosition(canvasElem, e);
-});*/
 
 playButton.addEventListener("click", function(f){
 	console.log("GameOn");
 		newGame();
 });
+
 bruhButton.addEventListener("click", function(d){////////////////TO MAKE LIGHTING WORK
-	if(translu)
-		translu = false;
+	if(lighting)
+		lighting = false;
 	else
-		translu = true;
+		lighting = true;
 });
 stopButton.addEventListener("click", function(d){
 	if(stop)
@@ -554,9 +588,10 @@ stopButton.addEventListener("click", function(d){
 });
 
 diffSlider.addEventListener("change", function(g){
-	bugGrowthValue = event.srcElement.value/100.0;
+	bugGrowthValue = event.srcElement.value/50*Math.PI/180;
 	console.log("Bug incremented!"  + event.srcElement.value);
 });
+
 document.addEventListener("keydown", function(z){
 	z.view.event.preventDefault();
 	switch(event.keyCode){
@@ -577,7 +612,7 @@ document.addEventListener("keydown", function(z){
 });
 
 //clickand drag
-var minDelta = 0.0005;
+var minDelta = 0.001;
 var moved = false;
 var clicked=false;
 var startX;
@@ -594,7 +629,7 @@ canvasElem.addEventListener("mousedown", function(cd){
 var lastX;
 var lastY;
 canvasElem.addEventListener("mousemove", function(cm){
-	if(clicked){
+	if(clicked&& (!winFinishing && !loseFinishing)){
 		let rect = canvas.getBoundingClientRect();
 		newX = 2.0*((event.clientX - rect.left)/canvas.width)-1.0;
 		newY = (2.0*((event.clientY - rect.top)/canvas.height)-1.0)*-1;
@@ -614,10 +649,10 @@ canvasElem.addEventListener("mousemove", function(cm){
 });
 
 canvasElem.addEventListener("mouseup", function(cu){
-	if(!moved){
+	if(!moved)
 		addPoison(canvasElem, cu);
-	}
-	moved = false
-	clicked=false;
 	
+	//end the click
+	moved = false;
+	clicked = false;
 });

@@ -40,7 +40,7 @@ class bug{
 			  case 2:
 				this.b =1.0;
 			}
-			this.growthIncrement= (5*Math.random()*bugGrowthValue +toRad)/60;
+			this.growthIncrement= (3*Math.random()*bugGrowthValue +toRad)/60;
 		}else{
 			this.lon = x;
 			this.lat = y;
@@ -436,7 +436,7 @@ var newGame = function init(){
 							bugList[i].checkContains(bugList[j]);//check to see if we consume the small bug
 						
 				
-					if(bugList[i].radius>90*toRad){//checks to see if we've lost
+					if(bugList[i].radius>30*toRad){//checks to see if we've lost
 					bugList[i].r/=1.04;//darkens losing bugs
 					bugList[i].g/=1.04;
 					bugList[i].b/=1.04;

@@ -4,10 +4,14 @@ const { vec2, vec3, vec4, mat3, mat4 } = glMatrix;
 	var poisonList = [];
 	var gameOn = false;
 	var bugGrowthValue = Math.PI/1800.0; //the growth value that will be between 
-	var lighting = false;
-	var stop = true;
+	var lighting = true;
 	var camLat =-0;
 	var camLon = -0;
+	
+	var toRad = Math.PI/180;
+	
+	var pointLat = -1*-105;
+	var pointLon = -45*-1;
 	var win = false;
 	var stop = false;
 	var loseFinishing = false;
@@ -17,10 +21,10 @@ class bug{
 		this.isDead=false;
 		this.isDying=false;
 		this.isExploding=false;
-		this.radius = Math.PI/180;
+		this.radius = toRad;
 		if(isBug){				
 			this.lon =Math.random()*Math.PI*2-Math.PI;
-			this.lat =Math.random()*Math.PI-Math.PI/2;//Math.random()*Math.PI*2.0;
+			this.lat =Math.random()*Math.PI-Math.PI /2;//Math.random()*Math.PI*2.0;
 			
 			this.r = Math.random(); //randomize the RGB values
 			this.g = Math.random();
@@ -36,7 +40,7 @@ class bug{
 			  case 2:
 				this.b =1.0;
 			}
-			this.growthIncrement= (3*Math.random()*bugGrowthValue +Math.PI/180)/60;
+			this.growthIncrement= (3*Math.random()*bugGrowthValue +toRad)/60;
 		}else{
 			this.lon = x;
 			this.lat = y;
@@ -45,7 +49,7 @@ class bug{
 			this.g = (Math.random()*155.0+100.0)/255.0;
 			this.b = 70.0/255.0*Math.random();
 			this.a= 1.0;
-			this.growthIncrement = Math.PI/90/60; //poison grows at a constant 2 deg/sec
+			this.growthIncrement = Math.PI /90/60; //poison grows at a constant 2 deg/sec
 			}
 		}
 
@@ -105,6 +109,8 @@ var bruh = true;
 var vertexShaderText = [
 'precision mediump float;',
 
+'uniform vec3 lightSource;',
+
 'attribute vec3 vertPosition;',
 'uniform mat4 vertexTransformation;',
 
@@ -127,7 +133,7 @@ var vertexShaderText = [
 
 '	gl_Position = pos;',
 
-'	shading = length(vec3(0.82,0.41,0.41)-pos.xyz)/2.0;',
+'	shading = length( (vec3(lightSource.x,lightSource.y,lightSource.z)/length(vec3(lightSource.x,lightSource.y,lightSource.z))) -pos.xyz)/2.0;',
 '	gl_PointSize = 2.0;',
 '}'
 ].join('\n');
@@ -136,9 +142,15 @@ var fragmentShaderText = [
 'precision mediump float;',
 'uniform vec4 fragColor;',
 
+
+'uniform float lighting;',
+
 'varying float shading;',
 'void main(){',
-'	gl_FragColor = shading*shading*fragColor;',
+'	if(lighting<0.5)',
+'		gl_FragColor =fragColor;',
+'	else',
+'		gl_FragColor = (1.0-shading)*(1.0-shading)*vec4(0.7,0.7,0.7,0.7) +fragColor;',
 '}'
 ].join('\n');
 	
@@ -148,7 +160,6 @@ window.onload = function main(){
 
 var newGame = function init(){
 	gameOn=true;
-	console.log(bugGrowthValue);
 	//Initializes the webGL stuff
 	canvas = document.getElementById("glCanvas");
 	var gl = canvas.getContext("webgl");
@@ -196,7 +207,6 @@ var newGame = function init(){
 	var objectVertices = [];
 	var indices =[];
 	var divisions = 90;
-	var toRad = Math.PI/180;
 	
 	//creates the spherical playing field
 	for(let theta = 0; theta <=360; theta += 360 / divisions){
@@ -266,6 +276,9 @@ var newGame = function init(){
 	//GET THE LOCATION TO CHANGE TO PROJECTING ON THE SPHERE. X>0.5 MEANS IT'S ON SPHERE, X<0.5 MEANS WE JUST DRAW NORMALLY
 	var sphereProjectionLocation = gl.getUniformLocation(program, 'projecting');
 	
+	var lightSourceLocation = gl.getUniformLocation(program, 'lightSource');
+	var sphereLightingLocation = gl.getUniformLocation(program, 'lighting');
+	
 	var bugRadLocation = gl.getUniformLocation(program, 'radius');//gets the location for radius in ver shader. Only used in bugs/goal
 	
 	var fragColorLocation = gl.getUniformLocation(program, "fragColor"); //gets the location for color in frag shader
@@ -312,10 +325,6 @@ var newGame = function init(){
 			
 	//SETS THE PROJECTION, SO THAT WE HAVE everything in view
 	var proj = new Float32Array(16);
-	/*mat4.perspective(proj, glMatrix.glMatrix.toRadian(45), //FIELD OF VIEW
-					 canvas.width/canvas.height, //ASPECT RATIO
-					 0.1/*NEAR/, 100/FAR/);
-	*/
 	mat4.ortho(proj, -16/9,16/9,-1,1,-3,10);
 	
 	//GETS THE LOCATION WHERE WE'LL USE TO ROTATE INDIVIDUAL BUGS
@@ -333,17 +342,24 @@ var newGame = function init(){
 	
 	var lose = false;
 	var backR =225.0; var backG = 240.0; var backB = 255.0; var backA = 1.0;
-	var sphereC = [0.0,0.0,0.0];//[1.0,1.0,1.0];
-	
+	var sphereC = [1.0,(Math.random()*70.0 + 130)/255.0,0.2*Math.random()];//[1.0,1.0,1.0];
+	var pointLight = getPointLight(pointLat,pointLon);
 	var bugBreach = 0;
 	var randRGB = Math.floor(Math.random()*3);
-	var up = 0;
 	var loop = function(){
+		
+		pointLight = getPointLight(pointLat,pointLon);
+		gl.uniform3f(lightSourceLocation, pointLight[0],pointLight[1],pointLight[2]);
+		if(lighting)
+			gl.uniform1f(sphereLightingLocation, 1.0); //sets to lighting for the  drawing	
+		else
+			gl.uniform1f(sphereLightingLocation, 0.0); //sets to no lighting for the  drawing	
+		
 		bugBreach =0;
 		win = true;
 		//resizes the viewport
-		canvas.width = window.innerWidth*0.9;
-		canvas.height = window.innerWidth*0.9*9/16;
+		canvas.width = window.innerWidth * 0.9;
+		canvas.height = window.innerWidth * 0.9 * 9 / 16;
 		gl.viewport(0,0,canvas.width,canvas.height);
 		
 		//configures camera to properly look at sphere
@@ -372,16 +388,7 @@ var newGame = function init(){
 			randRGB = Math.floor(Math.random()*3);
 			up = Math.floor(Math.random()*2);
 		}
-		if(!winFinishing&&!loseFinishing){
-			if(up==1)
-				sphereC[randRGB]+= Math.random()*0.005;
-			else
-				sphereC[randRGB]-= Math.random()*0.005;
-			if(sphereC[randRGB]<0)
-				sphereC[randRGB] = 0;
-			if(sphereC[randRGB]>1)
-				sphereC[randRGB] =1;			
-		}
+		
 			
 		gl.drawElements(gl.TRIANGLE_STRIP, spherePoints, gl.UNSIGNED_SHORT, 0); //Draws the sphere
 		
@@ -425,7 +432,7 @@ var newGame = function init(){
 							bugList[i].isExploding = true;
 				}else{
 					for(var j = 0; j < bugList.length; j++)//checks to see if this poison killed any bugs
-						if(i!=j && !bugList[j].isDead)
+						if(i!=j && !bugList[j].isDead&& bugList[i].radius> bugList[j].radius)
 							bugList[i].checkContains(bugList[j]);//check to see if we consume the small bug
 						
 				
@@ -496,6 +503,7 @@ var newGame = function init(){
 	};
 	
 	requestAnimationFrame(loop);
+	poisonList=[];
 };
 
 function bugTransforms(lat, lon, num){
@@ -507,7 +515,7 @@ function bugTransforms(lat, lon, num){
 	var lonRot = vec3.fromValues(1,0,0);
 	vec3.rotateY(lonRot, lonRot, [0,0,0], -lon);
 	
-	mat4.scale(finalTransformMatrix,finalTransformMatrix, [1+ num/1800,1+ num/1800,1+ num/1800]); // finally, makes it so no undesirable effects from multiple bugs
+	mat4.scale(finalTransformMatrix,finalTransformMatrix, [1+ num/ 3000,1+ num/ 3000,1+ num/ 3000]); // finally, makes it so no undesirable effects from multiple bugs
 	mat4.rotate(finalTransformMatrix, finalTransformMatrix, lat, lonRot); // next, rotate about the lonVec to get proper lat
 	mat4.rotateY(finalTransformMatrix, finalTransformMatrix, -lon); //first, rotates the patch to the proper longitude
 	return finalTransformMatrix;
@@ -550,15 +558,20 @@ function addPoison(canvas, event) {
 	
 	vec4.transformMat4(vec, vec, mat);
 
-	var lat = Math.acos(vec[1])-Math.PI/2; 
+	var lat = Math.acos(vec[1])-Math.PI /2; 
     var lon = Math.atan(vec[0]/vec[2]); 
 	if(vec[2]<0)
 		lon+= Math.PI;
 	
-	console.log("canvas \nlon: "+lon+ " \nlat: "+ lat);
-	
 	if(gotZ>0)//Put the bug where it needs to be
 		poisonList.push(new bug(0,0, -1*lon,-1*lat, false));		
+}
+
+function getPointLight(lat, lon){
+	var x = Math.sin(toRad * lat) * Math.cos(toRad * lon);
+	var y	 = Math.sin(toRad * lat) * Math.sin(toRad * lon);
+	var z = Math.cos(toRad * lat);
+	return [x,y,z];
 }
 
 //sets up the option menu
@@ -570,7 +583,7 @@ let diffSlider = document.getElementById("difficultySlider");
 let bruhButton = document.getElementById("bruhButton");
 
 playButton.addEventListener("click", function(f){
-	console.log("GameOn");
+	console.log("Game On!");
 		newGame();
 });
 
@@ -588,7 +601,7 @@ stopButton.addEventListener("click", function(d){
 });
 
 diffSlider.addEventListener("change", function(g){
-	bugGrowthValue = event.srcElement.value/50*Math.PI/180;
+	bugGrowthValue = event.srcElement.value/50*toRad;
 	console.log("Bug incremented!"  + event.srcElement.value);
 });
 
@@ -596,16 +609,16 @@ document.addEventListener("keydown", function(z){
 	z.view.event.preventDefault();
 	switch(event.keyCode){
 		case 87:
-		camLat+=0.1;
+		pointLon+=1;
 		break;
 		case 65:
-		camLon-=0.1;
+		pointLat+=1;
 		break;
 		case 68:
-		camLon+=0.1;
+		pointLat-=1;
 		break;
 		case 83:
-		camLat-=0.1;
+		pointLon-=1;
 		break;
 		
 	}
@@ -637,7 +650,7 @@ canvasElem.addEventListener("mousemove", function(cm){
 		if(newX-startX >minDelta || newY-startY>minDelta || newX-startX <-1*minDelta || newY-startY<-1*minDelta )
 			moved=true;
 		if(moved){
-			if(Math.abs(camLat% (2*Math.PI))>Math.PI/2)
+			if(Math.abs(camLat% (2*Math.PI))>Math.PI /2)
 				camLon = camLon + (newX-lastX);
 			else
 				camLon = camLon - (newX-lastX);
@@ -649,7 +662,7 @@ canvasElem.addEventListener("mousemove", function(cm){
 });
 
 canvasElem.addEventListener("mouseup", function(cu){
-	if(!moved)
+	if(!moved&&(!winFinishing && !loseFinishing))
 		addPoison(canvasElem, cu);
 	
 	//end the click

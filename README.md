@@ -1,5 +1,5 @@
 # Bug-Game 2
-COSC 414 Project 2 with the lads
+COSC 414 Project 2
 
 ## Objectives (80%): ##
 
